@@ -1,8 +1,20 @@
 #!/bin/sh
 
+init_uart() {
+    echo 248 > /sys/class/gpio/export
+    echo 249 > /sys/class/gpio/export
+    echo 214 > /sys/class/gpio/export
+
+    echo low > /sys/class/gpio/gpio248/direction
+    echo high > /sys/class/gpio/gpio249/direction
+    echo low > /sys/class/gpio/gpio214/direction
+}
+
 init_i2c6() {
     # NOTE: this will not all work when connected to breakout, because
-    #       there is no tri-state. That's okay.
+    #       there is no tri-state. I think. TODO: check
+    #author: David Pierret (davidx.pierret@intel.com)
+    #this script initialyse Arduino board to use I2C6
     echo 28 > /sys/class/gpio/export
     echo 27 > /sys/class/gpio/export
     echo 204 > /sys/class/gpio/export
@@ -28,23 +40,12 @@ init_i2c6() {
     echo high > /sys/class/gpio/gpio214/direction
 }
 
-init_dress_py() {
-    echo $(date): Initializing >> /home/root/run-dress-py.log
-    cd /home/root/fashion
-    python dress.py &>>/home/root/run-dress-py.log
-}
-
-init_buttond() {
-    python /home/root/fashion/buttond.py
-}
-
 main() {
     #cleanup_processes
     #systemctl start wpa_supplicant
     #rfkill unblock bluetooth
     init_i2c6
-    #init_dress_py
-    #init_buttond
+    init_uart
 }
 
 main
