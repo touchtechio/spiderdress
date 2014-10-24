@@ -10,19 +10,19 @@ class Spider(cmd.Cmd):
 
     def do_set_position(self, line):
         '''set_position [servo] [angle]
-         Moves leg of specified servo 1-12 to specified angle between 0-180 '''
+         Moves leg of specified servo 0-11 to specified angle between 0-180 '''
         
         args = line.split()
         servo = int(args[0])
         angle = int(args[1])
 
         self.maestro.set_position(servo, angle)
-    
+
     def do_get_position(self, line):
         '''get_position [servo],
                         get position of specified servo 1 - 12'''
         servo = int(line.split()[0])
-        self.maestro.get_position(servo)
+        print self.maestro.get_position(servo)
 
 if __name__ == '__main__':
     Spider().cmdloop()
