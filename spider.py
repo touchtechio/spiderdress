@@ -18,6 +18,14 @@ class Spider(cmd.Cmd):
 
         self.maestro.set_position(servo, angle)
 
+    def do_set_position_multiple(self, line):
+        '''set_position_multiple [servo] [angles]
+        Moves leg of servos starting at [servo] to specified angles between 0-180 '''
+
+        args = line.split()
+        servo = int(args.pop(0))
+        self.maestro.set_position_multiple(servo, *args)
+
     def do_get_position(self, line):
         '''get_position [servo],
                         get position of specified servo 1 - 12'''

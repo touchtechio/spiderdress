@@ -29,6 +29,28 @@ class MaestroController:
         cmd = chr(0xaa) + chr(0x0c) + chr(0x04) + chr(channel) + chr(low_bits) + chr(high_bits)
         self.serial.write(cmd)
 
+    def set_position_multiple(self, first_servo, *angles):
+        num_targets = len(angles)
+        target_bits = []
+        channel = int(first_servo) & 0x7f
+        for angle in angles:
+            angle = int(angle)
+            pulse_width = self.translate(angle)
+            if pulse_width == -1:
+                print "One angle outside of range [0-180]"
+                return
+
+            low_bits = pulse_width & 0x7f
+            high_bits = (pulse_width >> 7) & 0x7f
+            target_bits.append(low_bits)
+            target_bits.append(high_bits)
+
+        cmd = chr(0xaa) + chr(0x0c) + chr(0x1f) + chr(num_targets&0xff) + chr(channel)
+        for byte in target_bits:
+            cmd += chr(byte)
+        print ":".join("{:02x}".format(ord(c)) for c in cmd)
+        self.serial.write(cmd)
+
     def get_position(self, servo):
         channel = servo &0x7F
         cmd = chr(0xaa) + chr(0x0c) + chr(0x10) + chr(channel)
