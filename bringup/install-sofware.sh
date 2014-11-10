@@ -1,5 +1,5 @@
 #!/bin/bash -e
-d=$(dirname $(readlink -f $0))
+d="`dirname \"$0\"`"
 cd $d
 source local.conf
 
