@@ -1,2 +1,2 @@
 #!/bin/sh
-rsync -av . edison:~/spider
+rsync -av -e "ssh -oUser=root" . edison:~/spider

@@ -1,0 +1,4 @@
+To install spider project on Edison:
+
+- First time: run install.sh
+- Subsequent synchronization: run deploy.sh

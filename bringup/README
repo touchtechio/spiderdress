@@ -1,0 +1,6 @@
+To bring up a new edison:
+
+1. Edit local.conf if you have a special edison setup
+2. Run install.sh
+3. Run install-software.sh
+4. Follow completion instructions (install .ipk packages, etc.)
