@@ -1,0 +1,9 @@
+[Unit]
+Description=Root Init 2 Script Runner
+After=home.mount
+
+[Service]
+ExecStart=/home/root/init2.sh
+
+[Install]
+WantedBy=multi-user.target
