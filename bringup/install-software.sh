@@ -5,12 +5,11 @@ source local.conf
 
 scp -r -p ./support/python/lib/* root@$EDISON_SSH_HOST:/usr/lib/python2.7/site-packages/
 
-ssh edison mkdir tmp
+ssh root@$EDISON_SSH_HOST mkdir -p tmp/requests/
 
-scp -r -p ./support/python/requests root@$EDISON_SSH_HOST:tmp/requests
+scp -r -p ./support/python/requests/* root@$EDISON_SSH_HOST:tmp/requests/
 ssh edison 'cd tmp/requests && python setup.py install && cd && rm -rf tmp/requests'
 
-ssh root@$EDISON_SSH_HOST mkdir -p tmp
 scp -r -p ./support/packages/* root@$EDISON_SSH_HOST:tmp/
 
 cat <<EOF
