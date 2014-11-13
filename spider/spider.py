@@ -10,7 +10,7 @@ class Spider(cmd.Cmd):
 
     def do_set_position(self, line):
         '''set_position [servo] [angle]
-         Moves leg of specified servo 0-11 to specified angle between 0-180 '''
+         Moves leg of specified servo 0-11 to specified angle between -75 to 75 '''
         
         args = line.split()
         servo = int(args[0])
@@ -20,7 +20,7 @@ class Spider(cmd.Cmd):
 
     def do_set_position_multiple(self, line):
         '''set_position_multiple [servo] [angles]
-        Moves leg of servos starting at [servo] to specified angles between 0-180 '''
+        Moves leg of servos starting at [servo] to specified angles between -75 to 75 '''
 
         args = line.split()
         servo = int(args.pop(0))
