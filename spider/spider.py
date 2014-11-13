@@ -32,5 +32,23 @@ class Spider(cmd.Cmd):
         servo = int(line.split()[0])
         print self.maestro.get_position(servo)
 
+    def do_set_speed(self, line):
+        '''set_speed [servo] [speed]
+        Sets [speed] of [servo]. '''
+        args = line.split()
+        servo = int(args[0])
+        speed = int(args[1])
+
+        self.maestro.set_speed(servo, speed)
+
+    def do_set_accel(self, line):
+        '''set_accel [servo] [accel]
+        Sets [accel] of [servo]. Valid [accel] range from 0-255. '''
+        args = line.split()
+        servo = int(args[0])
+        accel = int(args[1])
+
+        self.maestro.set_accel(servo, accel)
+
 if __name__ == '__main__':
     Spider().cmdloop()

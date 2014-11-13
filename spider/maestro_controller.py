@@ -20,7 +20,7 @@ class MaestroController:
     def set_position(self, servo, angle):
         pulse_width = self.translate(angle)
         if pulse_width == -1:
-            print "Angle outside of range [0-180]"
+            print "Angle outside of range [-75, 75]"
             return
 
         low_bits = pulse_width & 0x7f
@@ -37,7 +37,7 @@ class MaestroController:
             angle = int(angle)
             pulse_width = self.translate(angle)
             if pulse_width == -1:
-                print "One angle outside of range [0-180]"
+                print "Angle outside of range [-75, 75]"
                 return
 
             low_bits = pulse_width & 0x7f
@@ -59,36 +59,50 @@ class MaestroController:
         w2 = self.serial.read()
         return hex(ord(w1)), hex(ord(w2))
 
+    def set_speed(self, servo, speed):
+        channel = servo & 0x7f
+        low_bits = speed & 0xff
+        high_bits = (speed >> 8) & 0xff
+        cmd = chr(0xaa) + chr(0x0c) + chr(0x07) + chr(channel) + chr(low_bits) + chr(high_bits)
+
+        self.serial.write(cmd)
+
+    def set_accel(self, servo, accel):
+        channel = servo & 0x7f
+        low_bits = accel & 0xff
+        high_bits = (accel >> 8) & 0xff
+        cmd = chr(0xaa) + chr(0x0c) + chr(0x09) + chr(channel) + chr(low_bits) + chr(high_bits)
+
+        self.serial.write(cmd)
+
     def translate(self, angle):
-        # min_pulse and max_pulse have been determined by testing since
-        # we don't have a data sheet for these servos. 0x0FFF is the
-        # minimum, while 0x1EE1 is the maximum. These have been converted
-        # to integers.
-        min_pulse, max_pulse = 4095, 7905
-        min_angle, max_angle = 0, 180
+        # min_pulse, max_pulse, and mid_pulse have been determined by testing since
+        # we don't have a data sheet for these servos. They are in microseconds.
+        min_pulse, max_pulse, mid_pulse = 750, 2250, 1500
+        min_angle, max_angle = -75, 75
         if angle < min_angle or angle > max_angle:
             return -1
 
-        val = (angle * (max_pulse-min_pulse)) / max_angle + min_pulse
+        # according to servo specs, every 10us is ~1 degree.
+        val = mid_pulse + (angle * 10)
+        val = val * 4 # convert to 1/4us for servo controller protocol.
         return int(val)
 
 if __name__ == '__main__':
     maestro = MaestroController()
     
-    try:
-        for x in range (0, 4):
-            print 'Turning servo %d' % (x)
-            #0 to 254 are valid target values
-            #where 0 is ~ 0 degress and 127 ~90 degrees
-	    #and 254 is ~180 degress
-            maestro.set_position(x, 90)
-            print maestro.get_position(x)
-            #maestro.go_home()
-            time.sleep(.05)
-            print maestro.get_position(x)
+    print "Testing servo 0..."
+    maestro.set_position(0, 0)
+    print "Return to neutral position..."
+    time.sleep(1)
 
-    except Exception, e:
-        print e
-    except KeyboardInterrupt:
-        print
- 
+    maestro.set_position(0, -75)
+    print "Move to -75 degrees..."
+    time.sleep(1)
+
+    maestro.set_position(0, 75)
+    print "Move to 75 degrees..."
+    time.sleep(1)
+
+    maestro.set_position(0, 0)
+    print "Return to neutral position... Test complete."
