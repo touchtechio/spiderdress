@@ -23,10 +23,15 @@ class MaestroController:
             print "Angle outside of range [-75, 75]"
             return
 
+        if servo < 12:
+            device = 12
+        else:
+            device = 13
         low_bits = pulse_width & 0x7f
         high_bits = (pulse_width >> 7) & 0x7f
         channel = servo & 0x7F
-        cmd = chr(0xaa) + chr(0x0c) + chr(0x04) + chr(channel) + chr(low_bits) + chr(high_bits)
+        
+        cmd = chr(0xaa) + chr(device&0xff) + chr(0x04) + chr(channel) + chr(low_bits) + chr(high_bits)
         self.serial.write(cmd)
 
     def set_position_multiple(self, first_servo, *angles):
