@@ -165,19 +165,19 @@ class ADS1X15:
             self.lock.acquire()
 
             # Set sample per seconds, defaults to 250sps
-            # If sps is in the dictionary (defined in init) it returns the value of the constant
+            # If sps is in the dictionary it returns the value of the constant,
             # othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
             if self.ic == IC_ADS1015:
-                config |= SPS_ADS1015.setdefault(sps, ADS1015_REG_CONFIG_DR_1600SPS)
+                config |= SPS_ADS1015.get(sps, ADS1015_REG_CONFIG_DR_1600SPS)
             else:
                 if (sps not in SPS_ADS1115) and self.debug:
                     print >>sys.stderr, "ADS1X15: Invalid sps specified: %d, using 6144mV" % sps
-                config |= SPS_ADS1115.setdefault(sps, ADS1115_REG_CONFIG_DR_250SPS)
+                config |= SPS_ADS1115.get(sps, ADS1115_REG_CONFIG_DR_250SPS)
 
             # Set PGA/voltage range, defaults to +-6.144V
             if (pga not in PGA_ADS1X15) and self.debug:
                 print >>sys.stderr, "ADS1X15: Invalid pga specified: %d, using 6144mV" % sps
-            config |= PGA_ADS1X15.setdefault(pga, ADS1015_REG_CONFIG_PGA_6_144V)
+            config |= PGA_ADS1X15.get(pga, ADS1015_REG_CONFIG_PGA_6_144V)
             self.pga = pga
 
             # Set the channel to be converted
@@ -199,8 +199,8 @@ class ADS1X15:
 
             # Wait for the ADC conversion to complete
             # The minimum delay depends on the sps: delay >= 1/sps
-            # We add 0.1ms to be sure
-            delay = 1.0 / sps + 0.0001
+            # Add at least 10ms to be sure
+            delay = max(0.010, 1.0 / sps + 0.001)
             time.sleep(delay)
 
             # Read the conversion results
@@ -256,19 +256,19 @@ class ADS1X15:
             self.lock.acquire()
 
             # Set sample per seconds, defaults to 250sps
-            # If sps is in the dictionary (defined in init()) it returns the value of the constant
+            # If sps is in the dictionary it returns the value of the constant,
             # othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
             if self.ic == IC_ADS1015:
-                config |= SPS_ADS1015.setdefault(sps, ADS1015_REG_CONFIG_DR_1600SPS)
+                config |= SPS_ADS1015.get(sps, ADS1015_REG_CONFIG_DR_1600SPS)
             else:
                 if (sps not in SPS_ADS1115) and self.debug:
                     print >>sys.stderr, "ADS1X15: Invalid pga specified: %d, using 6144mV" % sps
-                config |= SPS_ADS1115.setdefault(sps, ADS1115_REG_CONFIG_DR_250SPS)
+                config |= SPS_ADS1115.get(sps, ADS1115_REG_CONFIG_DR_250SPS)
 
             # Set PGA/voltage range, defaults to +-6.144V
             if (pga not in PGA_ADS1X15) and self.debug:
                 print "ADS1x15: Invalid pga specified: %d, using 6144mV" % sps
-            config |= PGA_ADS1X15.setdefault(pga, ADS1015_REG_CONFIG_PGA_6_144V)
+            config |= PGA_ADS1X15.get(pga, ADS1015_REG_CONFIG_PGA_6_144V)
             self.pga = pga
 
             # Set 'start single-conversion' bit
@@ -280,8 +280,8 @@ class ADS1X15:
 
             # Wait for the ADC conversion to complete
             # The minimum delay depends on the sps: delay >= 1/sps
-            # We add 0.1ms to be sure
-            delay = 1.0 / sps + 0.0001
+            # Add at least 10ms to be sure
+            delay = max(0.010, 1.0 / sps + 0.001)
             time.sleep(delay)
 
             # Read the conversion results
@@ -373,19 +373,19 @@ class ADS1X15:
             self.lock.acquire()
 
             # Set sample per seconds, defaults to 250sps
-            # If sps is in the dictionary (defined in init()) it returns the value of the constant
+            # If sps is in the dictionary it returns the value of the constant,
             # othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
             if self.ic == IC_ADS1015:
-                config |= SPS_ADS1015.setdefault(sps, ADS1015_REG_CONFIG_DR_1600SPS)
+                config |= SPS_ADS1015.get(sps, ADS1015_REG_CONFIG_DR_1600SPS)
             else:
                 if (sps not in SPS_ADS1115) and self.debug:
                     print >>sys.stderr, "ADS1X15: Invalid pga specified: %d, using 6144mV" % sps
-                config |= SPS_ADS1115.setdefault(sps, ADS1115_REG_CONFIG_DR_250SPS)
+                config |= SPS_ADS1115.get(sps, ADS1115_REG_CONFIG_DR_250SPS)
 
             # Set PGA/voltage range, defaults to +-6.144V
             if (pga not in PGA_ADS1X15) and self.debug:
                 print >>sys.stderr, "ADS1X15: Invalid pga specified: %d, using 6144mV" % sps
-            config |= PGA_ADS1X15.setdefault(pga, ADS1015_REG_CONFIG_PGA_6_144V)
+            config |= PGA_ADS1X15.get(pga, ADS1015_REG_CONFIG_PGA_6_144V)
             self.pga = pga
 
             # Set the channel to be converted
@@ -410,8 +410,8 @@ class ADS1X15:
 
             # Wait for the ADC conversion to complete
             # The minimum delay depends on the sps: delay >= 1/sps
-            # We add 0.5ms to be sure
-            delay = 1.0 / sps + 0.0005
+            # Add at least 10ms to be sure
+            delay = max(0.010, 1.0 / sps + 0.001)
             time.sleep(delay)
 
             # Read the conversion results
@@ -457,19 +457,19 @@ class ADS1X15:
             self.lock.acquire()
 
             # Set sample per seconds, defaults to 250sps
-            # If sps is in the dictionary (defined in init()) it returns the value of the constant
+            # If sps is in the dictionary it returns the value of the constant,
             # othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
             if self.ic == IC_ADS1015:
-                config |= SPS_ADS1015.setdefault(sps, ADS1015_REG_CONFIG_DR_1600SPS)
+                config |= SPS_ADS1015.get(sps, ADS1015_REG_CONFIG_DR_1600SPS)
             else:
                 if (sps not in SPS_ADS1115) and self.debug:
                     print >>sys.stderr, "ADS1X15: Invalid pga specified: %d, using 6144mV" % sps
-                config |= SPS_ADS1115.setdefault(sps, ADS1115_REG_CONFIG_DR_250SPS)
+                config |= SPS_ADS1115.get(sps, ADS1115_REG_CONFIG_DR_250SPS)
 
             # Set PGA/voltage range, defaults to +-6.144V
             if (pga not in PGA_ADS1X15) and self.debug:
                 print >>sys.stderr, "ADS1X15: Invalid pga specified: %d, using 6144mV" % sps
-            config |= PGA_ADS1X15.setdefault(pga, ADS1015_REG_CONFIG_PGA_6_144V)
+            config |= PGA_ADS1X15.get(pga, ADS1015_REG_CONFIG_PGA_6_144V)
             self.pga = pga
 
             # Set channels
@@ -496,8 +496,8 @@ class ADS1X15:
 
             # Wait for the ADC conversion to complete
             # The minimum delay depends on the sps: delay >= 1/sps
-            # We add 0.5ms to be sure
-            delay = 1.0 / sps + 0.0005
+            # Add at least 10ms to be sure
+            delay = max(0.010, 1.0 / sps + 0.001)
             time.sleep(delay)
 
             # Read the conversion results
@@ -603,21 +603,21 @@ class ADS1X15:
             self.lock.acquire()
 
             # Set sample per seconds, defaults to 250sps
-            # If sps is in the dictionary (defined in init()) it returns the value of the constant
+            # If sps is in the dictionary it returns the value of the constant,
             # othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
             if self.ic == IC_ADS1015:
                 if (sps not in SPS_ADS1015) and self.debug:
                     print >>sys.stderr, "ADS1X15: Invalid sps specified: %d, using 1600sps" % sps
-                config |= SPS_ADS1015.setdefault(sps, ADS1015_REG_CONFIG_DR_1600SPS)
+                config |= SPS_ADS1015.get(sps, ADS1015_REG_CONFIG_DR_1600SPS)
             else:
                 if (sps not in SPS_ADS1115) and self.debug:
                     print >>sys.stderr, "ADS1X15: Invalid sps specified: %d, using 250sps" % sps
-                config |= SPS_ADS1115.setdefault(sps, ADS1115_REG_CONFIG_DR_250SPS)
+                config |= SPS_ADS1115.get(sps, ADS1115_REG_CONFIG_DR_250SPS)
 
             # Set PGA/voltage range, defaults to +-6.144V
             if (pga not in PGA_ADS1X15) and self.debug:
                 print >>sys.stderr, "ADS1X15: Invalid pga specified: %d, using 6144mV" % pga
-            config |= PGA_ADS1X15.setdefault(pga, ADS1015_REG_CONFIG_PGA_6_144V)
+            config |= PGA_ADS1X15.get(pga, ADS1015_REG_CONFIG_PGA_6_144V)
             self.pga = pga
 
             # Set the channel to be converted
@@ -707,21 +707,21 @@ class ADS1X15:
             self.lock.acquire()
 
             # Set sample per seconds, defaults to 250sps
-            # If sps is in the dictionary (defined in init()) it returns the value of the constant
+            # If sps is in the dictionary it returns the value of the constant,
             # othewise it returns the value for 250sps. This saves a lot of if/elif/else code!
             if self.ic == IC_ADS1015:
                 if (sps not in SPS_ADS1015) and self.debug:
                     print >>sys.stderr, "ADS1X15: Invalid sps specified: %d, using 1600sps" % sps
-                config |= SPS_ADS1015.setdefault(sps, ADS1015_REG_CONFIG_DR_1600SPS)
+                config |= SPS_ADS1015.get(sps, ADS1015_REG_CONFIG_DR_1600SPS)
             else:
                 if (sps not in SPS_ADS1115) and self.debug:
                     print >>sys.stderr, "ADS1X15: Invalid sps specified: %d, using 250sps" % sps
-                config |= SPS_ADS1115.setdefault(sps, ADS1115_REG_CONFIG_DR_250SPS)
+                config |= SPS_ADS1115.get(sps, ADS1115_REG_CONFIG_DR_250SPS)
 
             # Set PGA/voltage range, defaults to +-6.144V
             if (pga not in PGA_ADS1X15) and self.debug:
                 print >>sys.stderr, "ADS1x15: Invalid pga specified: %d, using 6144mV" % pga
-            config |= PGA_ADS1X15.setdefault(pga, ADS1015_REG_CONFIG_PGA_6_144V)
+            config |= PGA_ADS1X15.get(pga, ADS1015_REG_CONFIG_PGA_6_144V)
             self.pga = pga
 
             # Set channels
