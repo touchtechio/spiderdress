@@ -27,6 +27,7 @@ class MaestroController:
             device = 12
         else:
             device = 13
+            servo = servo - 12
         low_bits = pulse_width & 0x7f
         high_bits = (pulse_width >> 7) & 0x7f
         channel = servo & 0x7F
@@ -35,10 +36,24 @@ class MaestroController:
         self.serial.write(cmd)
 
     def set_position_multiple(self, first_servo, *angles):
+        if first_servo < 12:
+            device = 12
+        else:
+            device = 13
+            first_servo = first_servo - 12
+
         num_targets = len(angles)
+        if first_servo+num_targets > 23:
+            print "Too many servo targets."
+            return
+
+        both_devices = False
+        if device == 12 and first_servo+num_targets > 11:
+            both_devices = True
+
         target_bits = []
         channel = int(first_servo) & 0x7f
-        for angle in angles:
+        for angle in angles[:12-first_servo]:
             angle = int(angle)
             pulse_width = self.translate(angle)
             if pulse_width == -1:
@@ -50,10 +65,32 @@ class MaestroController:
             target_bits.append(low_bits)
             target_bits.append(high_bits)
 
-        cmd = chr(0xaa) + chr(0x0c) + chr(0x1f) + chr(num_targets&0xff) + chr(channel)
+        cmd = chr(0xaa) + chr(device&0xff) + chr(0x1f) + chr((12-first_servo)&0xff) + chr(channel)
         for byte in target_bits:
             cmd += chr(byte)
         print ":".join("{:02x}".format(ord(c)) for c in cmd)
+
+        if both_devices is True:
+            target_bits2 = []
+            channel2 = 0
+            for angle in angles[12-first_servo:]:
+                angle = int(angle)
+                pulse_width = self.translate(angle)
+                if pulse_width == -1:
+                    print "Angle outside of range [-75, 75]"
+                    return
+
+                low_bits = pulse_width & 0x7f
+                high_bits = (pulse_width >> 7) & 0x7f
+                target_bits2.append(low_bits)
+                target_bits2.append(high_bits)
+
+            cmd2 = chr(0xaa) + chr(0x0d) + chr(0x1f) + chr((num_targets-12+first_servo)&0xff) + chr(channel2)
+            for byte in target_bits2:
+                cmd2 += chr(byte)
+            print ":".join("{:02x}".format(ord(c)) for c in cmd2)
+            self.serial.write(cmd2)
+
         self.serial.write(cmd)
 
     def get_position(self, servo):
