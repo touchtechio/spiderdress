@@ -34,3 +34,9 @@ disable_service clloader.service
 on_remote systemctl stop root-init.service
 on_remote systemctl enable root-init.service
 on_remote systemctl start root-init.service
+
+# Allow persistent processes
+#
+on_remote "grep -q '^KillMode' /lib/systemd/system/sshd@.service 2>/dev/null && \
+    sed -i 's/^KillMode.*/KillMode=process/' /lib/systemd/system/sshd@.service || \
+    echo 'KillMode=process' >> /lib/systemd/system/sshd@.service"
