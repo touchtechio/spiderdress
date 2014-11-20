@@ -19,9 +19,9 @@
 #include <Adafruit_NeoPixel.h>
 
 // configuration
-#define NEOPIXEL_PIN 6
-#define LED_COUNT 48
-#define LED_BARS 4
+#define NEOPIXEL_PIN 15
+#define LED_COUNT 20
+#define LED_BARS 2
 
 
 // setup
