@@ -1,5 +1,6 @@
 import serial
 import time
+import collections
 
 #http://www.pololu.com/docs/0J40/5.e
 class MaestroController:
@@ -43,7 +44,7 @@ class MaestroController:
             first_servo = first_servo - 12
 
         num_targets = len(angles)
-        if first_servo+num_targets > 23:
+        if first_servo+num_targets > 24:
             print "Too many servo targets."
             return
 
@@ -130,21 +131,77 @@ class MaestroController:
         val = val * 4 # convert to 1/4us for servo controller protocol.
         return int(val)
 
+class ServoScript:
+    """Define a script for servo motion.
+
+    This takes 6 legs and will attempt to move all servos into their
+    positions at provided speed and acceleration.
+    """
+    __isDefined = False
+
+    def __init__(self, maestro):
+        self.maestro = maestro
+
+    def define_script(self, leg0, leg1, leg2, leg3, leg4, leg5):
+        """Store given leg position/speed/acceleration information
+        to be run later.
+        """
+
+        self.legs = []
+        self.legs.append(leg0)
+        self.legs.append(leg1)
+        self.legs.append(leg2)
+        self.legs.append(leg3)
+        self.legs.append(leg4)
+        self.legs.append(leg5)
+        self.__isDefined = True
+
+    def run_script(self):
+        """Run the stored script assuming it has been defined."""
+
+        if self.__isDefined is not True:
+            print "Must define script before running."
+            return
+
+        positions = []
+
+        # Immediately set the speed and accel values through maestro,
+        # but not position. This is done so that all servos can
+        # move in a syncronized way.
+        for i in range(0, 24):
+            self.maestro.set_speed(i, self.legs[i/6].speeds[i%4])
+            self.maestro.set_accel(i, self.legs[i/6].accels[i%4])
+            positions.append(self.legs[i/6].positions[i%4])
+
+        self.maestro.set_position_multiple(0, *positions)
+
+# Leg abstracts 4 individual servos into their respective positions,
+# and the speed and acceleration to move into this position.
+Leg = collections.namedtuple('Leg', ['positions', 'speeds', 'accels'])
+
+def setup_scripts(scripts):
+    """Predefine scripts so that they may be run in response to
+    various sensors.
+    """
+    leg0 = Leg([0, -41, 57, 65], [0]*4, [0]*4)
+
+    park = ServoScript(maestro)
+    park.define_script(leg0, leg0, leg0, leg0, leg0, leg0)
+    scripts["park"] = park
+
+    leg0 = Leg([0, -41, -26, -43], [0]*4, [0]*4)
+
+    extend = ServoScript(maestro)
+    extend.define_script(leg0, leg0, leg0, leg0, leg0, leg0)
+    scripts["extend"] = extend
+
 if __name__ == '__main__':
     maestro = MaestroController()
     
-    print "Testing servo 0..."
-    maestro.set_position(0, 0)
-    print "Return to neutral position..."
-    time.sleep(1)
-
-    maestro.set_position(0, -75)
-    print "Move to -75 degrees..."
-    time.sleep(1)
-
-    maestro.set_position(0, 75)
-    print "Move to 75 degrees..."
-    time.sleep(1)
-
-    maestro.set_position(0, 0)
-    print "Return to neutral position... Test complete."
+    scripts = {}
+    setup_scripts(scripts)
+    scripts["park"].run_script()
+    time.sleep(3)
+    scripts["extend"].run_script()
+    time.sleep(3)
+    scripts["park"].run_script()
