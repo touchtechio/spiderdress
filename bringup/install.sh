@@ -32,7 +32,6 @@ rm hostname.temp
 scp -p nid.temp root@$EDISON_SSH_HOST:~/id
 rm nid.temp
 
-on_remote 'echo root:noside | chpasswd'
 
 disable_service() {
     on_remote systemctl stop $1
@@ -59,3 +58,5 @@ $d/install-software.sh
 on_remote "grep -q '^KillMode' /lib/systemd/system/sshd@.service 2>/dev/null && \
     sed -i 's/^KillMode.*/KillMode=process/' /lib/systemd/system/sshd@.service || \
     echo 'KillMode=process' >> /lib/systemd/system/sshd@.service"
+
+on_remote 'echo root:noside | chpasswd'
