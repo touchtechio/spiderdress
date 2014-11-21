@@ -16,7 +16,7 @@ main() {
     sleep 2
     iwconfig wlan0 power off
 
-    ifconfig wlan0 192.168.70.$ID/24
+    ifconfig wlan0 192.168.72.$ID/24
 
     # set tx power to max
     wlx txpwr1 31

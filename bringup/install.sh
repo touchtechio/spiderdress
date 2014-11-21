@@ -1,15 +1,20 @@
 #!/bin/bash
+#
+# Fashion Edison bringup installer: see https://confluence.ndg.intel.com/display/SPID/How-to%3A+Bring+up+an+Edison
+
 d="`dirname \"$0\"`"
 cd $d
 source local.conf
 
 # TODO: create backup if exists. Like mv?
 scp -p ./system/root-init.service root@$EDISON_SSH_HOST:/etc/systemd/system/
+scp -p ./system/sshd.socket root@$EDISON_SSH_HOST:/lib/systemd/system/
 scp -p ./system/wpa_supplicant.conf root@$EDISON_SSH_HOST:/etc/wpa_supplicant/
 scp -p ./system/bash_completion root@$EDISON_SSH_HOST:/etc/bash_completion
 ssh root@$EDISON_SSH_HOST mkdir -p /usr/local/bin
 scp -p ./system/nano root@$EDISON_SSH_HOST:/usr/local/bin/nano
-scp -p ./system/wlx root@$EDISON_SSH_HOST:/usr/sbin/wlx # NOTE: NOT needed when using edison-monrovia images
+scp -p ./system/batctl root@$EDISON_SSH_HOST:/usr/local/sbin/
+scp -p ./system/hosts root@$EDISON_SSH_HOST:/etc/hosts
 
 shopt -s dotglob # can also use globstar with '**'
 scp -p -r ./root/* root@$EDISON_SSH_HOST:~/
@@ -17,6 +22,17 @@ scp -p -r ./root/* root@$EDISON_SSH_HOST:~/
 on_remote() {
     ssh root@$EDISON_SSH_HOST $@
 }
+
+echo "~/id:"
+read nid
+echo "$nid" > nid.temp
+echo "ft$nid" > hostname.temp
+scp -p hostname.temp root@$EDISON_SSH_HOST:/etc/hostname
+rm hostname.temp
+scp -p nid.temp root@$EDISON_SSH_HOST:~/id
+rm nid.temp
+
+on_remote 'echo root:noside | chpasswd'
 
 disable_service() {
     on_remote systemctl stop $1
@@ -26,15 +42,17 @@ disable_service() {
 
 #disable_service serial-getty@ttyMFD2.service
 #disable_service pwr-button-handler.service
-disable_service sketch_reset.service
-disable_service xdk-daemon.service
-disable_service rsmb.service
-disable_service edison_config.service
-disable_service clloader.service
+disable_service sketch_reset.service 2>/dev/null
+disable_service xdk-daemon.service 2>/dev/null
+disable_service rsmb.service 2>/dev/null
+disable_service edison_config.service 2>/dev/null
+disable_service clloader.service 2>/dev/null
 
-on_remote systemctl stop root-init.service
+on_remote systemctl stop root-init.service 2>/dev/null
 on_remote systemctl enable root-init.service
 on_remote systemctl start root-init.service
+
+$d/install-software.sh
 
 # Allow persistent processes
 #

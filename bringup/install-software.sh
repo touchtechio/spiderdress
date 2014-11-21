@@ -9,14 +9,3 @@ ssh root@$EDISON_SSH_HOST mkdir -p tmp/requests/
 
 scp -r -p ./support/python/requests/* root@$EDISON_SSH_HOST:tmp/requests/
 ssh edison 'cd tmp/requests && python setup.py install && cd && rm -rf tmp/requests'
-
-scp -r -p ./support/packages/* root@$EDISON_SSH_HOST:tmp/
-
-cat <<EOF
-TO FINALIZE: In ~/tmp on edison, install wwXX .ipk packages, e.g.:
-   opkg install tmp/ww33/bash_4.3-r0_core2-32.ipk
-   opkg install tmp/ww33/coreutils_8.22-r0_core2-32.ipk
-   opkg install tmp/ww33/util-linux-bash-completion_2.24.1-r0_core2-32.ipk
-
-These three example packages are the minimum recommended set.
-EOF
