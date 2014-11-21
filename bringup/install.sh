@@ -13,7 +13,7 @@ scp -p ./system/wpa_supplicant.conf root@$EDISON_SSH_HOST:/etc/wpa_supplicant/
 scp -p ./system/bash_completion root@$EDISON_SSH_HOST:/etc/bash_completion
 ssh root@$EDISON_SSH_HOST mkdir -p /usr/local/bin
 scp -p ./system/nano root@$EDISON_SSH_HOST:/usr/local/bin/nano
-scp -p ./system/batctl root@$EDISON_SSH_HOST:/usr/local/sbin/
+
 scp -p ./system/hosts root@$EDISON_SSH_HOST:/etc/hosts
 
 shopt -s dotglob # can also use globstar with '**'
