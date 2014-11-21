@@ -12,9 +12,8 @@ main() {
     #setting up bluetooth
     #rfkill unblock bluetooth
     
-    # else where??
-    gpio_init_i2c6
-    gpio_init_uart
+    /home/root/gpio-i2c6-enable
+    /home/root/gpio-uart-enable
 }
 
 main
