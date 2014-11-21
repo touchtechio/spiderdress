@@ -1,0 +1,28 @@
+#!/bin/sh
+
+main() {
+    ID=$(if [ -f /home/root/id ]; then cat /home/root/id; else echo 1; fi)
+
+    ifconfig wlan0 down 2>/dev/null
+    sleep 1
+
+    ifconfig wlan0 up
+    sleep 1
+
+    wlx antdiv 3
+    wlx txant 3
+    wlx up
+    wlx join edi key 0:01630 imode ibss amode open
+    sleep 2
+    iwconfig wlan0 power off
+
+    ifconfig wlan0 192.168.70.$ID/24
+
+    # set tx power to max
+    wlx txpwr1 31
+    # set constantly awake
+    wlx PM 0
+}
+
+main
+exit 0
