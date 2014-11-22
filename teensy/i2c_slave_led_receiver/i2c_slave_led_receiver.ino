@@ -35,9 +35,9 @@ struct RGB {
   byte b;
 };
 
-int black = strip.Color(0, 0, 0); // off
+int black = strip.Color(0, 0, 0);   // leds off
 RGB current_color = {0, 0, 5};
-int current_animation_id = 1;
+int current_animation_id = 0;
 
 // controls how long animation plays
 bool animate = false;
@@ -93,6 +93,9 @@ void receiveEvent(int bytes)
       Serial.println("Setting Animation");
       set_animation();
       break;
+    case 4:
+      Serial.Println("Setting leds based on proximity data");
+      set_proximity_leds();
     default:
       Serial.println(cmd_id);
       Serial.println("Cmd not matched!"); 
@@ -124,8 +127,13 @@ void paintLeds(int ledCount) {
   strip.show();
 }
 
+void set_proximity_leds() {
+  paintLeds(Wire.read());
+}
+
 void leds_off() {
-   animate = false;
+   animate = false;  // stop previous animation
+   // set all pixels to off
    for(int i=0;i<LED_COUNT;i++) {
     strip.setPixelColor(i, black); 
     strip.show();
@@ -140,7 +148,8 @@ void set_color() {
 }
 
 void set_animation() {
-  animate = false;
+  leds_off();  // stop previous animation
+  animate = true;  
   int id = Wire.read();
   switch (id) {
     case 0:
@@ -160,21 +169,22 @@ void set_animation() {
 
 void animate_park() {
   Serial.println("I'm park!!!");
-  animate = true;
   while (animate) {
+    /*
     for(uint16_t i=0; i< LED_COUNT; i++) {
       int color = strip.Color(current_color.r, current_color.g, current_color.b);
       colorWipe(color, 50);
     }
     leds_off();
     delay(20);
+    */
+    heartbeat();
   }
 
 }
 
 void animate_point() {
  Serial.println("I'm point!!!");
- animate = true;
  while (animate) {
    for(uint16_t i=0; i<LED_COUNT; i++) {
      Serial.println("inside loop");
@@ -186,13 +196,11 @@ void animate_point() {
 
 void animate_territorial() {
   Serial.println("I'm territorial!");
-  animate = true;
   while (animate) {
     colorWipe(strip.Color(255, 0, 0), 50); // Red
     colorWipe(strip.Color(0, 255, 0), 50); // Green
     colorWipe(strip.Color(0, 0, 255), 50); // Blue
   }
-  leds_off();
 }
 
 // Input a value 0 to 255 to get a color value.
@@ -217,6 +225,52 @@ void colorWipe(uint32_t c, uint8_t wait) {
       strip.show();
       delay(wait);
   }
+}
+
+void heartbeat() {
+  int greeno;
+  int redo;
+  int blueo;
+
+    // all pixels show the same color:
+  redo =random(255);
+  greeno = random(255);
+  blueo = random (255);
+      strip.setPixelColor(0, redo, greeno, blueo);
+      strip.setPixelColor(1, redo, greeno, blueo);
+      strip.setPixelColor(2, redo, greeno, blueo);
+      
+      strip.show();
+      delay (20);
+      
+   int x = 3;
+   for (int ii = 1 ; ii <252 ; ii = ii = ii + x){
+     strip.setBrightness(ii);
+     strip.show();              
+     delay(5);
+    }
+    
+    x = 3;
+   for (int ii = 252 ; ii > 3 ; ii = ii - x){
+     strip.setBrightness(ii);
+     strip.show();              
+     delay(3);
+     }
+   delay(10);
+   
+   x = 6;
+  for (int ii = 1 ; ii <255 ; ii = ii = ii + x){
+     strip.setBrightness(ii);
+     strip.show();              
+     delay(2);  
+     }
+   x = 6;
+   for (int ii = 255 ; ii > 1 ; ii = ii - x){
+     strip.setBrightness(ii);
+     strip.show();              
+     delay(3);
+   }
+  delay (50); 
 }
 
 
