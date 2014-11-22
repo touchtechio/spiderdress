@@ -19,12 +19,19 @@
 #include <Adafruit_NeoPixel.h>
 
 // configuration
-#define NEOPIXEL_PIN 15
-#define LED_COUNT 20
+#define NEOPIXEL_LEFT_PIN 12
+#define NEOPIXEL_RIGHT_PIN 16
+
+#define LED_COUNT 10
 #define LED_BARS 2
 
 // setup
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(48, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel leftStrip = Adafruit_NeoPixel(LED_COUNT, NEOPIXEL_RIGHT_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel rightStrip = Adafruit_NeoPixel(LED_COUNT, NEOPIXEL_LEFT_PIN, NEO_GRB + NEO_KHZ800);
+
+// @deprecated : just for backward compatibility
+Adafruit_NeoPixel strip = leftStrip;
+
 
 int ledsPerBar = LED_COUNT / LED_BARS;
 
@@ -36,7 +43,8 @@ struct RGB {
 };
 
 int black = strip.Color(0, 0, 0);   // leds off
-RGB current_color = {0, 0, 5};
+RGB current_color = {
+  0, 0, 5};
 int current_animation_id = 0;
 
 // controls how long animation plays
@@ -51,13 +59,14 @@ void setup()
   Serial.begin(9600);           // start serial for output
 
   // bring up led driver
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
+  leftStrip.begin();
+  rightStrip.begin();
+  show(); // Initialize all pixels to 'off'
 
   // ???
   pinMode(0,OUTPUT);             // for verification
 
- paintLeds(12);
+  paintLeds(12);
 
 }
 
@@ -75,32 +84,32 @@ void receiveEvent(int bytes)
   int cmd_id  = Wire.read();
   Serial.print("cmd: ");
   Serial.println(cmd_id);
-  
+
   int num_bytes = Wire.available();
   Serial.print(num_bytes);
   Serial.println(" arguments available to read");
-  
+
   switch (cmd_id) {
-    case 0:
-      Serial.println("Turning Neopixel strip off");
-      leds_off();
-      break;
-    case 1:
-      Serial.println("Setting Neopixel strip color");
-      set_color();
-      break;
-    case 2:
-      Serial.println("Setting Animation");
-      set_animation();
-      break;
-    case 4:
-      Serial.Println("Setting leds based on proximity data");
-      set_proximity_leds();
-    default:
-      Serial.println(cmd_id);
-      Serial.println("Cmd not matched!"); 
+  case 0:
+    Serial.println("Turning Neopixel strip off");
+    leds_off();
+    break;
+  case 1:
+    Serial.println("Setting Neopixel strip color");
+    set_color();
+    break;
+  case 2:
+    Serial.println("Setting Animation");
+    set_animation();
+    break;
+  case 4:
+    Serial.println("Setting leds based on proximity data");
+    set_proximity_leds();
+  default:
+    Serial.println(cmd_id);
+    Serial.println("Cmd not matched!"); 
   }
-  
+
   return;
 }
 
@@ -115,16 +124,16 @@ void paintLeds(int ledCount) {
 
       if (ledCount > i) {
         // leds on
-        strip.setPixelColor(ledIndex, strip.Color(  0,   0, 127));
+        setPixelColor(ledIndex, strip.Color(  0,   0, 127));
       } 
       else {
         // leds off
-        strip.setPixelColor(ledIndex, strip.Color(  0,   0, 12));
+        setPixelColor(ledIndex, strip.Color(  0,   0, 12));
       }
     }
   }
 
-  strip.show();
+  show();
 }
 
 void set_proximity_leds() {
@@ -132,13 +141,13 @@ void set_proximity_leds() {
 }
 
 void leds_off() {
-   animate = false;  // stop previous animation
-   // set all pixels to off
-   for(int i=0;i<LED_COUNT;i++) {
-    strip.setPixelColor(i, black); 
-    strip.show();
-   }
-   
+  animate = false;  // stop previous animation
+  // set all pixels to off
+  for(int i=0;i<LED_COUNT;i++) {
+    setPixelColor(i, black); 
+    show();
+  }
+
 }
 
 void set_color() { 
@@ -152,18 +161,18 @@ void set_animation() {
   animate = true;  
   int id = Wire.read();
   switch (id) {
-    case 0:
-      animate_park();
-      break;
-    case 1:
-      animate_territorial();
-      break;
-    case 2:
-      animate_point();
-      break;
-    default:
-      Serial.print(id);
-      Serial.println(" is unrecognized ID to animate!");
+  case 0:
+    animate_park();
+    break;
+  case 1:
+    animate_territorial();
+    break;
+  case 2:
+    animate_point();
+    break;
+  default:
+    Serial.print(id);
+    Serial.println(" is unrecognized ID to animate!");
   }
 }
 
@@ -172,26 +181,26 @@ void animate_park() {
   while (animate) {
     /*
     for(uint16_t i=0; i< LED_COUNT; i++) {
-      int color = strip.Color(current_color.r, current_color.g, current_color.b);
-      colorWipe(color, 50);
-    }
-    leds_off();
-    delay(20);
-    */
+     int color = strip.Color(current_color.r, current_color.g, current_color.b);
+     colorWipe(color, 50);
+     }
+     leds_off();
+     delay(20);
+     */
     heartbeat();
   }
 
 }
 
 void animate_point() {
- Serial.println("I'm point!!!");
- while (animate) {
-   for(uint16_t i=0; i<LED_COUNT; i++) {
-     Serial.println("inside loop");
-     paintLeds(i);
-     delay(50);
-   }
- }
+  Serial.println("I'm point!!!");
+  while (animate) {
+    for(uint16_t i=0; i<LED_COUNT; i++) {
+      Serial.println("inside loop");
+      paintLeds(i);
+      delay(50);
+    }
+  }
 }
 
 void animate_territorial() {
@@ -208,22 +217,24 @@ void animate_territorial() {
 uint32_t Wheel(byte WheelPos) {
   WheelPos = 255 - WheelPos;
   if(WheelPos < 85) {
-   return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  } else if(WheelPos < 170) {
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  } 
+  else if(WheelPos < 170) {
     WheelPos -= 85;
-   return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  } else {
-   WheelPos -= 170;
-   return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  } 
+  else {
+    WheelPos -= 170;
+    return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
   }
 }
 
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {
   for(uint16_t i=0; i<LED_COUNT; i++) {
-      strip.setPixelColor(i, c);
-      strip.show();
-      delay(wait);
+    setPixelColor(i, c);
+    show();
+    delay(wait);
   }
 }
 
@@ -232,45 +243,74 @@ void heartbeat() {
   int redo;
   int blueo;
 
-    // all pixels show the same color:
+  // all pixels show the same color:
   redo =random(255);
   greeno = random(255);
   blueo = random (255);
-      strip.setPixelColor(0, redo, greeno, blueo);
-      strip.setPixelColor(1, redo, greeno, blueo);
-      strip.setPixelColor(2, redo, greeno, blueo);
-      
-      strip.show();
-      delay (20);
-      
-   int x = 3;
-   for (int ii = 1 ; ii <252 ; ii = ii = ii + x){
-     strip.setBrightness(ii);
-     strip.show();              
-     delay(5);
-    }
-    
-    x = 3;
-   for (int ii = 252 ; ii > 3 ; ii = ii - x){
-     strip.setBrightness(ii);
-     strip.show();              
-     delay(3);
-     }
-   delay(10);
-   
-   x = 6;
+  setPixelColor(0, redo, greeno, blueo);
+  setPixelColor(1, redo, greeno, blueo);
+  setPixelColor(2, redo, greeno, blueo);
+
+  show();
+  delay (20);
+
+  int x = 3;
+  for (int ii = 1 ; ii <252 ; ii = ii = ii + x){
+    setBrightness(ii);
+    show();              
+    delay(5);
+  }
+
+  x = 3;
+  for (int ii = 252 ; ii > 3 ; ii = ii - x){
+    setBrightness(ii);
+    show();              
+    delay(3);
+  }
+  delay(10);
+
+  x = 6;
   for (int ii = 1 ; ii <255 ; ii = ii = ii + x){
-     strip.setBrightness(ii);
-     strip.show();              
-     delay(2);  
-     }
-   x = 6;
-   for (int ii = 255 ; ii > 1 ; ii = ii - x){
-     strip.setBrightness(ii);
-     strip.show();              
-     delay(3);
-   }
+    setBrightness(ii);
+    show();              
+    delay(2);  
+  }
+  x = 6;
+  for (int ii = 255 ; ii > 1 ; ii = ii - x){
+    setBrightness(ii);
+    show();              
+    delay(3);
+  }
   delay (50); 
 }
+
+
+
+
+boolean shouldContinueAnimating = true;
+
+void show () {
+  rightStrip.show();
+  leftStrip.show();
+  return;
+}
+
+void setBrightness (uint8_t brightness) {
+  rightStrip.setBrightness(brightness);
+  leftStrip.setBrightness(brightness);
+  return;
+}
+
+void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
+  rightStrip.setPixelColor(n, r, g, b);
+  leftStrip.setPixelColor(n, r, g, b);
+  return;
+}
+
+void setPixelColor(uint16_t n, uint32_t c) {
+  rightStrip.setPixelColor(n, c);
+  leftStrip.setPixelColor(n, c);  
+}
+
 
 
