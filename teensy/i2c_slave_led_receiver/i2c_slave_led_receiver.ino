@@ -239,9 +239,7 @@ void animate_point() {
 void animate_territorial() {
   Serial.println("I'm territorial!");
   while (shouldContinueAnimating) {
-    colorWipe(strip.Color(255, 0, 0), 50); // Red
-    colorWipe(strip.Color(0, 255, 0), 50); // Green
-    colorWipe(strip.Color(0, 0, 255), 50); // Blue
+    colorWipe(strip.Color(current_color.r, current_color.g, current_color.b), 50);
   }
 }
 
