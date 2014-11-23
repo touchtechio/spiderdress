@@ -25,6 +25,19 @@
 #define LED_COUNT 10
 #define LED_BARS 2
 
+// Constants defining communication protocol with teensy from Edison
+#define OFF  0x00
+#define COLOR 0x01
+#define BRIGHTNESS 0x02
+#define ANIMATION 0x03
+#define COUNT 0x04
+#define PROXIMITY 0x05
+               
+// Animation IDs which are arguments to 
+#define PARK 0       
+#define TERRITORIAL 1
+#define POINT 2
+
 // setup
 Adafruit_NeoPixel leftStrip = Adafruit_NeoPixel(LED_COUNT, NEOPIXEL_RIGHT_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel rightStrip = Adafruit_NeoPixel(LED_COUNT, NEOPIXEL_LEFT_PIN, NEO_GRB + NEO_KHZ800);
@@ -43,12 +56,17 @@ struct RGB {
 };
 
 int black = strip.Color(0, 0, 0);   // leds off
-RGB current_color = {
-  0, 0, 5};
+RGB current_color = {0, 0, 5};
+
+RGB rgb_blue = {0, 0, 127};
+RGB pure_white = {255, 255, 180};
+RGB blue_in_between_state = {200, 200, 255};
+
+int current_brightness = 200;
 int current_animation_id = 0;
 
 // controls how long animation plays
-bool animate = false;
+boolean shouldContinueAnimating = true;
 
 void setup()
 {
@@ -84,27 +102,38 @@ void receiveEvent(int bytes)
   int cmd_id  = Wire.read();
   Serial.print("cmd: ");
   Serial.println(cmd_id);
-
   int num_bytes = Wire.available();
   Serial.print(num_bytes);
   Serial.println(" arguments available to read");
 
+  int brigthtness;
+  int id;
+  
   switch (cmd_id) {
-  case 0:
+  case OFF:
     Serial.println("Turning Neopixel strip off");
     leds_off();
     break;
-  case 1:
+  case COLOR:
     Serial.println("Setting Neopixel strip color");
     set_color();
     break;
-  case 2:
-    Serial.println("Setting Animation");
-    set_animation();
+  case BRIGHTNESS:
+    Serial.println("Setting Neopixel strip brightness");
+    brigthtness = Wire.read();
+    setBrightness(brigthtness);
     break;
-  case 4:
+  case COUNT:
+    break;
+  case ANIMATION:
+    Serial.println("Setting Animation");
+    id = Wire.read();
+    set_animation(id);
+    break;
+  case PROXIMITY:
     Serial.println("Setting leds based on proximity data");
     set_proximity_leds();
+    break;
   default:
     Serial.println(cmd_id);
     Serial.println("Cmd not matched!"); 
@@ -141,7 +170,7 @@ void set_proximity_leds() {
 }
 
 void leds_off() {
-  animate = false;  // stop previous animation
+  shouldContinueAnimating = false;  // stop previous animation
   // set all pixels to off
   for(int i=0;i<LED_COUNT;i++) {
     setPixelColor(i, black); 
@@ -156,18 +185,18 @@ void set_color() {
   current_color.b = Wire.read();
 }
 
-void set_animation() {
+void set_animation(int id) {
   leds_off();  // stop previous animation
-  animate = true;  
-  int id = Wire.read();
+  current_animation_id = id;
+  shouldContinueAnimating = true;  
   switch (id) {
-  case 0:
+  case PARK:
     animate_park();
     break;
-  case 1:
+  case TERRITORIAL:
     animate_territorial();
     break;
-  case 2:
+  case POINT:
     animate_point();
     break;
   default:
@@ -178,7 +207,7 @@ void set_animation() {
 
 void animate_park() {
   Serial.println("I'm park!!!");
-  while (animate) {
+  while (shouldContinueAnimating) {
     /*
     for(uint16_t i=0; i< LED_COUNT; i++) {
      int color = strip.Color(current_color.r, current_color.g, current_color.b);
@@ -194,7 +223,7 @@ void animate_park() {
 
 void animate_point() {
   Serial.println("I'm point!!!");
-  while (animate) {
+  while (shouldContinueAnimating) {
     for(uint16_t i=0; i<LED_COUNT; i++) {
       Serial.println("inside loop");
       paintLeds(i);
@@ -205,7 +234,7 @@ void animate_point() {
 
 void animate_territorial() {
   Serial.println("I'm territorial!");
-  while (animate) {
+  while (shouldContinueAnimating) {
     colorWipe(strip.Color(255, 0, 0), 50); // Red
     colorWipe(strip.Color(0, 255, 0), 50); // Green
     colorWipe(strip.Color(0, 0, 255), 50); // Blue
@@ -284,10 +313,6 @@ void heartbeat() {
   delay (50); 
 }
 
-
-
-
-boolean shouldContinueAnimating = true;
 
 void show () {
   rightStrip.show();
