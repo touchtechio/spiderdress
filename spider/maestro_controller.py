@@ -36,8 +36,8 @@ class MaestroController:
         cmd = chr(0xaa) + chr(device&0xff) + chr(0x04) + chr(channel) + chr(low_bits) + chr(high_bits)
         self.serial.write(cmd)
 
-    def set_position_multiple(self, first_servo, *angles):
-        num_targets = len(angles)
+    def set_position_multiple(self, first_servo, *pulse_widths):
+        num_targets = len(pulse_widths)
         if first_servo+num_targets > 24:
             print "Too many servo targets."
             return
@@ -57,11 +57,10 @@ class MaestroController:
 
         target_bits = []
         channel = int(first_servo) & 0x7f
-        for angle in angles[:12-first_servo]:
-            angle = int(angle)
-            pulse_width = self.translate(angle)
-            if pulse_width == -1:
-                print "Angle outside of range [-75, 75]"
+        for pulse_width in pulse_widths[:12-first_servo]:
+            pulse_width = int(pulse_width) * 4
+            if pulse_width < 750 or pulse_width > 2250:
+                print "Pulse width outside of range [750, 2250]"
                 return
 
             low_bits = pulse_width & 0x7f
@@ -77,11 +76,10 @@ class MaestroController:
         if both_devices is True:
             target_bits2 = []
             channel2 = 0
-            for angle in angles[12-first_servo:]:
-                angle = int(angle)
-                pulse_width = self.translate(angle)
-                if pulse_width == -1:
-                    print "Angle outside of range [-75, 75]"
+            for pulse_width in pulse_widths[12-first_servo:]:
+                pulse_width = int(pulse_width) * 4
+                if pulse_width < 750 or pulse_width > 2250:
+                    print "Pulse width outside of range [750, 2250]"
                     return
 
                 low_bits = pulse_width & 0x7f
@@ -195,23 +193,23 @@ def setup_scripts(scripts):
     """Predefine scripts so that they may be run in response to
     various sensors.
     """
-    leg0 = Leg([-43, 57, 6, 65], [0]*4, [0]*4)
-    leg1 = Leg([-22, 48, 0, 0], [0]*4, [0]*4)
-    leg2 = Leg([0]*4, [0]*4, [0]*4)
-    leg3 = Leg([25, -39, -18, -66], [0]*4, [0]*4)
-    leg4 = Leg([2, -59, 0, 0], [0]*4, [0]*4)
-    leg5 = Leg([0]*4, [0]*4, [0]*4)
+    leg0 = Leg([1070, 2070, 1560, 2150], [0]*4, [0]*4)
+    leg1 = Leg([1280, 1980, 1500, 1500], [0]*4, [0]*4)
+    leg2 = Leg([1500]*4, [0]*4, [0]*4)
+    leg3 = Leg([1750, 1110, 1320, 840], [0]*4, [0]*4)
+    leg4 = Leg([1520, 910, 1500, 1500], [0]*4, [0]*4)
+    leg5 = Leg([1500]*4, [0]*4, [0]*4)
 
     park = ServoScript(maestro)
     park.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
     scripts["park"] = park
 
-    leg0 = Leg([-43, 57, -52, -12], [40]*4, [10]*4)
-    leg1 = Leg([46, -22, 0, 0], [40]*4, [10]*4)
-    leg2 = Leg([0]*4, [0]*4, [0]*4)
-    leg3 = Leg([25, -39, 49, 5], [40]*4, [10]*4)
-    leg4 = Leg([-68, 11, 0, 0], [40]*4, [10]*4)
-    leg5 = Leg([0]*4, [0]*4, [0]*4)
+    leg0 = Leg([1070, 2070, 980, 1380], [40]*4, [10]*4)
+    leg1 = Leg([1960, 1280, 1500, 1500], [40]*4, [10]*4)
+    leg2 = Leg([1500]*4, [0]*4, [0]*4)
+    leg3 = Leg([1750, 1110, 1990, 1550], [40]*4, [10]*4)
+    leg4 = Leg([820, 1610, 1500, 1500], [40]*4, [10]*4)
+    leg5 = Leg([1500]*4, [0]*4, [0]*4)
 
     extend = ServoScript(maestro)
     extend.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
