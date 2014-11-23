@@ -28,6 +28,10 @@ class TeensyTester(cmd.Cmd):
 
         self.teensy.set_color(r, g, b)
 
+    def do_set_count(self, line):
+	args = line.split()
+	self.teensy.set_pixel_count(int(args[0]))
+
     def do_set_leds_off(self, line):
         '''set_leds_off 
          Turns strip off. '''

@@ -16,6 +16,8 @@ PROXIMITY = 0x05
 PARK = 0 
 TERRITORIAL = 1 
 POINT = 2 
+GLOW = 3
+GLOW_SLOW = 4
 
 class Teensy():
   def __init__(self):

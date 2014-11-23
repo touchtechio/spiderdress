@@ -37,6 +37,21 @@
 #define PARK 0       
 #define TERRITORIAL 1
 #define POINT 2
+#define GLOW 3
+#define GLOW_SLOW 4
+
+uint8_t LED_Breathe_Table[]  = {   80,  87,  95, 103, 112, 121, 131, 141, 151, 161, 172, 182, 192, 202, 211, 220,
+              228, 236, 242, 247, 251, 254, 255, 255, 254, 251, 247, 242, 236, 228, 220, 211,
+              202, 192, 182, 172, 161, 151, 141, 131, 121, 112, 103,  95,  87,  80,  73,  66,
+               60,  55,  50,  45,  41,  38,  34,  31,  28,  26,  24,  22,  20,  20,  20,  20,
+               20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,
+               20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  20,  22,  24,  26,  28,
+               31,  34,  38,  41,  45,  50,  55,  60,  66,  73 };
+
+
+#define BREATHE_TABLE_SIZE (sizeof(LED_Breathe_Table))
+#define BREATHE_CYCLE    6000      /*breathe cycle in milliseconds*/
+#define BREATHE_UPDATE    (BREATHE_CYCLE / BREATHE_TABLE_SIZE)
 
 // setup
 Adafruit_NeoPixel leftStrip = Adafruit_NeoPixel(LED_COUNT, NEOPIXEL_RIGHT_PIN, NEO_GRB + NEO_KHZ800);
@@ -55,8 +70,10 @@ struct RGB {
   byte b;
 };
 
+int current_led_count = LED_COUNT;
+
 int black = strip.Color(0, 0, 0);   // leds off
-RGB current_color = {0, 0, 5};
+RGB current_color = {0, 0, 127};
 
 RGB rgb_blue = {0, 0, 127};
 RGB pure_white = {255, 255, 180};
@@ -107,7 +124,8 @@ void receiveEvent(int bytes)
   Serial.println(" arguments available to read");
 
   int brigthtness;
-  int id;
+  int animation_id;
+  int current_led_count;
   
   switch (cmd_id) {
   case OFF:
@@ -124,12 +142,15 @@ void receiveEvent(int bytes)
     setBrightness(brigthtness);
     break;
   case COUNT:
+    Serial.println("Setting Neopixel strip led count");
+    current_led_count = Wire.read();
+    Serial.println(current_led_count);
     break;
   case ANIMATION:
     Serial.println("Setting Animation");
     leds_off();
-    id = Wire.read();
-    set_animation(id);
+    animation_id = Wire.read();
+    set_animation(animation_id);
     break;
   case PROXIMITY:
     Serial.println("Setting leds based on proximity data");
@@ -154,11 +175,11 @@ void paintLeds(int ledCount) {
 
       if (ledCount > i) {
         // leds on
-        setPixelColor(ledIndex, strip.Color(  0,   0, 127));
+        setPixelColor(ledIndex, strip.Color(  current_color.r, current_color.g, current_color.b));
       } 
       else {
         // leds off
-        setPixelColor(ledIndex, strip.Color(  0,   0, 12));
+        setPixelColor(ledIndex, strip.Color( current_color.r, current_color.g, current_color.b / 7 ));
       }
     }
   }
@@ -171,9 +192,12 @@ void set_proximity_leds() {
 }
 
 void leds_off() {
+  Serial.print("Led count is: ");
+  Serial.println(current_led_count);
+  
   shouldContinueAnimating = false;  // stop previous animation
   // set all pixels to off
-  for(int i=0;i<LED_COUNT;i++) {
+  for(int i=0;i<current_led_count;i++) {
     setPixelColor(i, black); 
     show();
   }
@@ -189,7 +213,9 @@ void set_color() {
 void set_animation(int id) {
   leds_off();  // stop previous animation
   current_animation_id = id;
-  shouldContinueAnimating = true;  
+  shouldContinueAnimating = true;
+  int glow_type;
+  int glow_speed;
   switch (id) {
   case PARK:
     animate_park();
@@ -200,6 +226,14 @@ void set_animation(int id) {
   case POINT:
     animate_point();
     break;
+  case GLOW:
+    glow_type = 0;
+    glow_speed = 6000;
+    animate_glow(glow_type, glow_speed);
+    break;
+  case GLOW_SLOW:
+    glow_type = 0;
+    glow_speed = 1000;
   default:
     Serial.print(id);
     Serial.println(" is unrecognized ID to animate!");
@@ -209,7 +243,7 @@ void set_animation(int id) {
 void animate_park() {
   Serial.println("I'm park!!!");
   while (shouldContinueAnimating) {
-    for(uint16_t i=0; i< LED_COUNT; i++) {
+    for(uint16_t i=0; i< current_led_count; i++) {
        if (shouldContinueAnimating) {
          int color = strip.Color(current_color.r, current_color.g, current_color.b);
          colorWipe(color, 50);
@@ -225,7 +259,7 @@ void animate_park() {
 void animate_point() {
   Serial.println("I'm point!!!");
   while (shouldContinueAnimating) {
-    for(uint16_t i=0; i<LED_COUNT; i++) {
+    for(uint16_t i=0; i<current_led_count; i++) {
       if (shouldContinueAnimating) {
         paintLeds(i);
         delay(50);
@@ -242,6 +276,21 @@ void animate_territorial() {
     colorWipe(strip.Color(current_color.r, current_color.g, current_color.b), 50);
   }
 }
+
+void animate_glow(int type, int rate) {
+  int cycle;
+  int breath_update = rate / sizeof(LED_Breathe_Table);
+  
+  while (shouldContinueAnimating) {
+    for (cycle=0; cycle < 4; cycle++) {
+        if (type == 0)
+          uniformBreathe(LED_Breathe_Table, BREATHE_TABLE_SIZE, breath_update, current_color.r, current_color.g, current_color.b);
+        else
+          sequencedBreathe(LED_Breathe_Table, BREATHE_TABLE_SIZE, breath_update, current_color.r, current_color.g, current_color.b);
+      }
+  }
+}
+
 
 // Input a value 0 to 255 to get a color value.
 // The colours are a transition r - g - b - back to r.
@@ -262,7 +311,7 @@ uint32_t Wheel(byte WheelPos) {
 
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {
-  for(uint16_t i=0; i<LED_COUNT; i++) {
+  for(uint16_t i=0; i<current_led_count; i++) {
     if (shouldContinueAnimating) {
       setPixelColor(i, c);
       show();
@@ -273,44 +322,47 @@ void colorWipe(uint32_t c, uint8_t wait) {
   }
 }
 
-void heartbeat() {
-  for (int i = 0; i < LED_COUNT; i++) {
-    setPixelColor(i, current_color.r, current_color.g, current_color.b);
+void uniformBreathe(uint8_t* breatheTable, uint8_t breatheTableSize, uint16_t updatePeriod, uint16_t r, uint16_t g, uint16_t b)
+{
+  int i;
+  uint8_t breatheIndex = 0;
+  uint8_t breatheRed;
+  uint8_t breatheGrn;
+  uint8_t breatheBlu;
+  
+  for (breatheIndex = 0; breatheIndex < breatheTableSize; breatheIndex++) {
+    for (i=0; i < current_led_count; i++) {
+      breatheRed = (r * breatheTable[breatheIndex]) / 256;
+      breatheGrn = (g * breatheTable[breatheIndex]) / 256;
+      breatheBlu = (b * breatheTable[breatheIndex]) / 256;
+      strip.setPixelColor(i, breatheRed, breatheGrn, breatheBlu);
+    }
+    strip.show();   // write all the pixels out
+    delay(updatePeriod);
   }
-
-  show();
-  delay (20);
-
-  int x = 3;
-  for (int ii = 1 ; ii <252 ; ii = ii = ii + x){
-    setBrightness(ii);
-    show();              
-    delay(5);
-  }
-
-  x = 3;
-  for (int ii = 252 ; ii > 3 ; ii = ii - x){
-    setBrightness(ii);
-    show();              
-    delay(3);
-  }
-  delay(10);
-
-  x = 6;
-  for (int ii = 1 ; ii <255 ; ii = ii = ii + x){
-    setBrightness(ii);
-    show();              
-    delay(2);  
-  }
-  x = 6;
-  for (int ii = 255 ; ii > 1 ; ii = ii - x){
-    setBrightness(ii);
-    show();              
-    delay(3);
-  }
-  delay (50); 
 }
 
+void sequencedBreathe(uint8_t* breatheTable, uint8_t breatheTableSize, uint16_t updatePeriod, uint16_t r, uint16_t g, uint16_t b)
+{
+  int i;
+  uint8_t breatheIndex = 0;
+  uint8_t breatheRed;
+  uint8_t breatheGrn;
+  uint8_t breatheBlu;
+  uint8_t sequenceIndex;
+  
+  for (breatheIndex = 0; breatheIndex < breatheTableSize; breatheIndex++) {
+    for (i=0; i < current_led_count; i++) {
+      sequenceIndex = (breatheIndex + (i*4)) % breatheTableSize;
+      breatheRed = (r * breatheTable[sequenceIndex]) / 256;
+      breatheGrn = (g * breatheTable[sequenceIndex]) / 256;
+      breatheBlu = (b * breatheTable[sequenceIndex]) / 256;
+      strip.setPixelColor(i, breatheRed, breatheGrn, breatheBlu);
+    }
+    strip.show();   // write all the pixels out
+    delay(updatePeriod);
+  }
+}
 
 void show () {
   rightStrip.show();
