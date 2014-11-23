@@ -7,9 +7,10 @@ from time import time, sleep
 # Constants defining communication protocol with teensy
 OFF = 0x00 
 COLOR = 0x01
-ANIMATION = 0x02 
-LED_COUNT = 0x03
-PROXIMITY = 0x04
+BRIGHTNESS = 0x02
+ANIMATION = 0x03 
+LED_COUNT = 0x04
+PROXIMITY = 0x05
 
 # Animation IDs
 PARK = 0 
@@ -20,6 +21,9 @@ class Teensy():
   def __init__(self):
    # Initialize I2C device using the default address
     self.dev = I2CDevice(0x04, debug=True)
+
+  def set_brightness(self, value):
+    self.send_command(BRIGHTNESS, [value])
 
   def set_pixel_count(self, count):
     self.send_command(LED_COUNT, [count]);

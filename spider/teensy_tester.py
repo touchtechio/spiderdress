@@ -10,6 +10,13 @@ class TeensyTester(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.teensy = teensy.Teensy() 
 
+    def do_set_brightness(self, line):
+        '''set_brightness [value]
+        Sets brightness of strip 0 to 255 '''
+        
+        args = line.split()
+        self.teensy.set_brightness(int(args[0]))
+
     def do_set_color(self, line):
         '''set_color [r] [g] [b]
          Sets color on neopixel strip. RGB values are 0 - 255 '''
