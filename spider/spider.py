@@ -7,6 +7,8 @@ class Spider(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.maestro = maestro_controller.MaestroController()
+        self.scripts = {}
+        maestro_controller.setup_scripts(scripts)
 
     def do_set_position(self, line):
         '''set_position [servo] [angle]
@@ -49,6 +51,12 @@ class Spider(cmd.Cmd):
         accel = int(args[1])
 
         self.maestro.set_accel(servo, accel)
+
+    def do_run_script(self, line):
+        args = line.split()
+        script = str(args[0])
+
+        self.scripts[script].run_script()
 
 if __name__ == '__main__':
     Spider().cmdloop()
