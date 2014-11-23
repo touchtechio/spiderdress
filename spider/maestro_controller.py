@@ -37,20 +37,23 @@ class MaestroController:
         self.serial.write(cmd)
 
     def set_position_multiple(self, first_servo, *angles):
+        num_targets = len(angles)
+        if first_servo+num_targets > 24:
+            print "Too many servo targets."
+            return
+
         if first_servo < 12:
             device = 12
         else:
             device = 13
             first_servo = first_servo - 12
 
-        num_targets = len(angles)
-        if first_servo+num_targets > 24:
-            print "Too many servo targets."
-            return
-
         both_devices = False
+        targets1 = num_targets
         if device == 12 and first_servo+num_targets > 11:
             both_devices = True
+            targets1 = 12 - first_servo
+            targets2 = num_targets - targets1
 
         target_bits = []
         channel = int(first_servo) & 0x7f
@@ -66,7 +69,7 @@ class MaestroController:
             target_bits.append(low_bits)
             target_bits.append(high_bits)
 
-        cmd = chr(0xaa) + chr(device&0xff) + chr(0x1f) + chr((12-first_servo)&0xff) + chr(channel)
+        cmd = chr(0xaa) + chr(device&0xff) + chr(0x1f) + chr((targets1)&0xff) + chr(channel)
         for byte in target_bits:
             cmd += chr(byte)
         print ":".join("{:02x}".format(ord(c)) for c in cmd)
@@ -86,7 +89,7 @@ class MaestroController:
                 target_bits2.append(low_bits)
                 target_bits2.append(high_bits)
 
-            cmd2 = chr(0xaa) + chr(0x0d) + chr(0x1f) + chr((num_targets-12+first_servo)&0xff) + chr(channel2)
+            cmd2 = chr(0xaa) + chr(0x0d) + chr(0x1f) + chr((targets2)&0xff) + chr(channel2)
             for byte in target_bits2:
                 cmd2 += chr(byte)
             print ":".join("{:02x}".format(ord(c)) for c in cmd2)
@@ -103,18 +106,26 @@ class MaestroController:
         return hex(ord(w1)), hex(ord(w2))
 
     def set_speed(self, servo, speed):
+        device = 12
+        if servo > 11:
+            servo = servo - 12
+            device = 13
         channel = servo & 0x7f
         low_bits = speed & 0xff
         high_bits = (speed >> 8) & 0xff
-        cmd = chr(0xaa) + chr(0x0c) + chr(0x07) + chr(channel) + chr(low_bits) + chr(high_bits)
+        cmd = chr(0xaa) + chr(device&0xff) + chr(0x07) + chr(channel) + chr(low_bits) + chr(high_bits)
 
         self.serial.write(cmd)
 
     def set_accel(self, servo, accel):
+        device = 12
+        if servo > 11:
+            servo = servo - 12
+            device = 13
         channel = servo & 0x7f
         low_bits = accel & 0xff
         high_bits = (accel >> 8) & 0xff
-        cmd = chr(0xaa) + chr(0x0c) + chr(0x09) + chr(channel) + chr(low_bits) + chr(high_bits)
+        cmd = chr(0xaa) + chr(device&0xff) + chr(0x09) + chr(channel) + chr(low_bits) + chr(high_bits)
 
         self.serial.write(cmd)
 
@@ -169,10 +180,11 @@ class ServoScript:
         # but not position. This is done so that all servos can
         # move in a syncronized way.
         for i in range(0, 24):
-            self.maestro.set_speed(i, self.legs[i/6].speeds[i%4])
-            self.maestro.set_accel(i, self.legs[i/6].accels[i%4])
-            positions.append(self.legs[i/6].positions[i%4])
+            self.maestro.set_speed(i, self.legs[i/4].speeds[i%4])
+            self.maestro.set_accel(i, self.legs[i/4].accels[i%4])
+            positions.append(self.legs[i/4].positions[i%4])
 
+        #print positions
         self.maestro.set_position_multiple(0, *positions)
 
 # Leg abstracts 4 individual servos into their respective positions,
@@ -183,16 +195,26 @@ def setup_scripts(scripts):
     """Predefine scripts so that they may be run in response to
     various sensors.
     """
-    leg0 = Leg([0, -41, 57, 65], [0]*4, [0]*4)
+    leg0 = Leg([-43, 57, 6, 65], [0]*4, [0]*4)
+    leg1 = Leg([-22, 48, 0, 0], [0]*4, [0]*4)
+    leg2 = Leg([0]*4, [0]*4, [0]*4)
+    leg3 = Leg([25, -39, -18, -66], [0]*4, [0]*4)
+    leg4 = Leg([2, -59, 0, 0], [0]*4, [0]*4)
+    leg5 = Leg([0]*4, [0]*4, [0]*4)
 
     park = ServoScript(maestro)
-    park.define_script(leg0, leg0, leg0, leg0, leg0, leg0)
+    park.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
     scripts["park"] = park
 
-    leg0 = Leg([0, -41, -26, -43], [0]*4, [0]*4)
+    leg0 = Leg([-43, 57, -52, -12], [40]*4, [10]*4)
+    leg1 = Leg([46, -22, 0, 0], [40]*4, [10]*4)
+    leg2 = Leg([0]*4, [0]*4, [0]*4)
+    leg3 = Leg([25, -39, 49, 5], [40]*4, [10]*4)
+    leg4 = Leg([-68, 11, 0, 0], [40]*4, [10]*4)
+    leg5 = Leg([0]*4, [0]*4, [0]*4)
 
     extend = ServoScript(maestro)
-    extend.define_script(leg0, leg0, leg0, leg0, leg0, leg0)
+    extend.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
     scripts["extend"] = extend
 
 if __name__ == '__main__':
@@ -201,7 +223,7 @@ if __name__ == '__main__':
     scripts = {}
     setup_scripts(scripts)
     scripts["park"].run_script()
+    #time.sleep(3)
+    #scripts["extend"].run_script()
     time.sleep(3)
-    scripts["extend"].run_script()
-    time.sleep(3)
-    scripts["park"].run_script()
+    #scripts["park"].run_script()
