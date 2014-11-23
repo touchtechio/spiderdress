@@ -22,7 +22,7 @@
 #define NEOPIXEL_LEFT_PIN 12
 #define NEOPIXEL_RIGHT_PIN 16
 
-#define LED_COUNT 10
+#define LED_COUNT 20
 #define LED_BARS 2
 
 // Constants defining communication protocol with teensy from Edison
@@ -62,6 +62,7 @@ Adafruit_NeoPixel strip = leftStrip;
 
 
 int ledsPerBar = LED_COUNT / LED_BARS;
+bool animating = false;
 
 // Color Definitions
 struct RGB {
@@ -125,7 +126,6 @@ void receiveEvent(int bytes)
 
   int brigthtness;
   int animation_id;
-  int current_led_count;
   
   switch (cmd_id) {
   case OFF:
@@ -188,7 +188,12 @@ void paintLeds(int ledCount) {
 }
 
 void set_proximity_leds() {
-  paintLeds(Wire.read());
+  leds_off();
+  int num_lights = Wire.read();
+  for(int i = 0; i < num_lights; i++) {
+    setPixelColor(i, current_color.r, current_color.g, current_color.b);
+    show();
+  }
 }
 
 void leds_off() {
@@ -335,7 +340,7 @@ void uniformBreathe(uint8_t* breatheTable, uint8_t breatheTableSize, uint16_t up
       breatheRed = (r * breatheTable[breatheIndex]) / 256;
       breatheGrn = (g * breatheTable[breatheIndex]) / 256;
       breatheBlu = (b * breatheTable[breatheIndex]) / 256;
-      strip.setPixelColor(i, breatheRed, breatheGrn, breatheBlu);
+      setPixelColor(i, breatheRed, breatheGrn, breatheBlu);
     }
     strip.show();   // write all the pixels out
     delay(updatePeriod);
@@ -357,7 +362,7 @@ void sequencedBreathe(uint8_t* breatheTable, uint8_t breatheTableSize, uint16_t 
       breatheRed = (r * breatheTable[sequenceIndex]) / 256;
       breatheGrn = (g * breatheTable[sequenceIndex]) / 256;
       breatheBlu = (b * breatheTable[sequenceIndex]) / 256;
-      strip.setPixelColor(i, breatheRed, breatheGrn, breatheBlu);
+      setPixelColor(i, breatheRed, breatheGrn, breatheBlu);
     }
     strip.show();   // write all the pixels out
     delay(updatePeriod);
