@@ -127,6 +127,7 @@ void receiveEvent(int bytes)
     break;
   case ANIMATION:
     Serial.println("Setting Animation");
+    leds_off();
     id = Wire.read();
     set_animation(id);
     break;
@@ -208,15 +209,15 @@ void set_animation(int id) {
 void animate_park() {
   Serial.println("I'm park!!!");
   while (shouldContinueAnimating) {
-    /*
     for(uint16_t i=0; i< LED_COUNT; i++) {
-     int color = strip.Color(current_color.r, current_color.g, current_color.b);
-     colorWipe(color, 50);
+       if (shouldContinueAnimating) {
+         int color = strip.Color(current_color.r, current_color.g, current_color.b);
+         colorWipe(color, 50);
+       } else {
+         break;
+       }
      }
-     leds_off();
      delay(20);
-     */
-    heartbeat();
   }
 
 }
@@ -225,9 +226,12 @@ void animate_point() {
   Serial.println("I'm point!!!");
   while (shouldContinueAnimating) {
     for(uint16_t i=0; i<LED_COUNT; i++) {
-      Serial.println("inside loop");
-      paintLeds(i);
-      delay(50);
+      if (shouldContinueAnimating) {
+        paintLeds(i);
+        delay(50);
+      } else {
+        break;
+      }
     }
   }
 }
@@ -261,24 +265,20 @@ uint32_t Wheel(byte WheelPos) {
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {
   for(uint16_t i=0; i<LED_COUNT; i++) {
-    setPixelColor(i, c);
-    show();
-    delay(wait);
+    if (shouldContinueAnimating) {
+      setPixelColor(i, c);
+      show();
+      delay(wait);
+    } else {
+      break;
+    }
   }
 }
 
 void heartbeat() {
-  int greeno;
-  int redo;
-  int blueo;
-
-  // all pixels show the same color:
-  redo =random(255);
-  greeno = random(255);
-  blueo = random (255);
-  setPixelColor(0, redo, greeno, blueo);
-  setPixelColor(1, redo, greeno, blueo);
-  setPixelColor(2, redo, greeno, blueo);
+  for (int i = 0; i < LED_COUNT; i++) {
+    setPixelColor(i, current_color.r, current_color.g, current_color.b);
+  }
 
   show();
   delay (20);
