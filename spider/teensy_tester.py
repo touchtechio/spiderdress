@@ -9,6 +9,7 @@ class TeensyTester(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.teensy = teensy.Teensy() 
+        self.color = [255, 255, 180]
 
     def do_set_brightness(self, line):
         '''set_brightness [value]
@@ -26,7 +27,7 @@ class TeensyTester(cmd.Cmd):
         g = int(args[1])
 	b = int(args[2])
 
-        self.teensy.set_color(r, g, b)
+        self.teensy.set_color([r, g, b])
 
     def do_set_count(self, line):
 	args = line.split()
@@ -48,6 +49,34 @@ class TeensyTester(cmd.Cmd):
     def do_set_proximity_leds(self, line):
         args = line.split()
         self.teensy.set_proximity_leds(int(args[0]))
+
+    def do_set_intimate(self, line):
+    	color = self.parse_color(line)
+	self.teensy.set_intimate(color)
+
+    def do_set_personal(self, line):
+        color = self.parse_color(line)
+	self.teensy.set_personal(color)
+    
+    def do_set_social(self, line):
+	color = self.parse_color(line)
+	print color
+        self.teensy.set_social(color);
+
+    def do_set_photoshoot(self, line='1'):
+        args = line.split()
+        self.teensy.set_photoshoot(int(args[0]))
+    
+    def parse_color(self, line):
+        if not line:                                                             
+          line = '255 255 180'                                                   
+                                                    
+        args = line.split()                         
+        r = int(args[0])                            
+        g = int(args[1])                            
+        b = int(args[2]) 
+
+        return [r, g, b]
 
 if __name__ == '__main__':
     TeensyTester().cmdloop()

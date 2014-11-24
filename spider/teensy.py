@@ -13,11 +13,10 @@ LED_COUNT = 0x04
 PROXIMITY = 0x05
 
 # Animation IDs
-PARK = 0 
-TERRITORIAL = 1 
-POINT = 2 
-GLOW = 3
-GLOW_SLOW = 4
+GLOW = 0 
+GLOW_SLOW = 1 
+HEARTBEAT = 2
+SOLID = 3
 
 class Teensy():
   def __init__(self):
@@ -30,8 +29,8 @@ class Teensy():
   def set_pixel_count(self, count):
     self.send_command(LED_COUNT, [count]);
 
-  def set_color(self, r=0, g=0, b=127):
-    self.send_command(COLOR, [r, g, b]) 
+  def set_color(self, color):
+    self.send_command(COLOR, color) 
   
   def set_off(self):
     self.send_command(OFF, [])
@@ -41,7 +40,31 @@ class Teensy():
 
   def set_proximity_leds(self, led_count):
     self.send_command(PROXIMITY, [led_count])
-   
+
+  def set_intimate(self, color):
+    self.set_off()
+    self.set_color(color)
+    self.set_animation(SOLID)
+
+  def set_personal(self, color):
+    self.set_off()
+    self.set_color(color)
+    self.set_animation(HEARTBEAT)
+ 
+  def set_social(self, color):
+    self.set_off()
+    self.set_color(color)
+    self.set_animation(GLOW)
+
+  def set_photoshoot(self, index):
+    self.set_off()
+    if (index == 0):
+      self.set_color([255, 255, 180])
+    else:
+      self.set_color([0, 0, 127])
+ 
+    self.set_animation(SOLID)
+
   def send_command(self, cmd, args):
     print args
     self.dev.write_list(cmd, args)
