@@ -58,8 +58,8 @@ class MaestroController:
         target_bits = []
         channel = int(first_servo) & 0x7f
         for pulse_width in pulse_widths[:12-first_servo]:
-            if pulse_width < 736 or pulse_width > 2256:
-                print "Pulse width outside of range [750, 2250]"
+            if pulse_width < 736 or pulse_width > 2272:
+                print "Pulse width outside of range [736, 2272]"
                 return
 
             pulse_width = int(pulse_width) * 4
@@ -78,8 +78,8 @@ class MaestroController:
             target_bits2 = []
             channel2 = 0
             for pulse_width in pulse_widths[12-first_servo:]:
-                if pulse_width < 736 or pulse_width > 2256:
-                    print "Pulse width outside of range [750, 2250]"
+                if pulse_width < 736 or pulse_width > 2272:
+                    print "Pulse width outside of range [736, 2272]"
                     return
 
                 pulse_width = int(pulse_width) * 4
