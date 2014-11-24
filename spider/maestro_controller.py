@@ -58,10 +58,11 @@ class MaestroController:
         target_bits = []
         channel = int(first_servo) & 0x7f
         for pulse_width in pulse_widths[:12-first_servo]:
-            pulse_width = int(pulse_width) * 4
-            if pulse_width < 750 or pulse_width > 2250:
+            if pulse_width < 736 or pulse_width > 2256:
                 print "Pulse width outside of range [750, 2250]"
                 return
+
+            pulse_width = int(pulse_width) * 4
 
             low_bits = pulse_width & 0x7f
             high_bits = (pulse_width >> 7) & 0x7f
@@ -77,10 +78,11 @@ class MaestroController:
             target_bits2 = []
             channel2 = 0
             for pulse_width in pulse_widths[12-first_servo:]:
-                pulse_width = int(pulse_width) * 4
-                if pulse_width < 750 or pulse_width > 2250:
+                if pulse_width < 736 or pulse_width > 2256:
                     print "Pulse width outside of range [750, 2250]"
                     return
+
+                pulse_width = int(pulse_width) * 4
 
                 low_bits = pulse_width & 0x7f
                 high_bits = (pulse_width >> 7) & 0x7f
@@ -102,6 +104,21 @@ class MaestroController:
         w1 = self.serial.read()
         w2 = self.serial.read()
         return hex(ord(w1)), hex(ord(w2))
+
+    def get_servos_moving(self):
+        cmd1 = chr(0xaa) + chr(0x0c) + chr(0x13)
+        self.serial.write(cmd1)
+        r = self.serial.read()
+        if r == 0x01:
+            return True
+
+        cmd2 = chr(0xaa) + chr(0x0d) + chr(0x13)
+        self.serial.write(cmd2)
+        r = self.serial.read()
+        if r == 0x01:
+            return True
+
+        return False
 
     def set_speed(self, servo, speed):
         device = 12
@@ -189,16 +206,16 @@ class ServoScript:
 # and the speed and acceleration to move into this position.
 Leg = collections.namedtuple('Leg', ['positions', 'speeds', 'accels'])
 
-def setup_scripts(scripts):
+def setup_scripts(maestro, scripts):
     """Predefine scripts so that they may be run in response to
     various sensors.
     """
-    leg0 = Leg([1070, 2070, 1560, 2150], [0]*4, [0]*4)
-    leg1 = Leg([1280, 1980, 1500, 1500], [0]*4, [0]*4)
-    leg2 = Leg([1500]*4, [0]*4, [0]*4)
-    leg3 = Leg([1750, 1110, 1320, 840], [0]*4, [0]*4)
-    leg4 = Leg([1520, 910, 1500, 1500], [0]*4, [0]*4)
-    leg5 = Leg([1500]*4, [0]*4, [0]*4)
+    leg0 = Leg([1070, 2070, 1560, 2150], [40]*4, [10]*4)
+    leg1 = Leg([1280, 1980, 1500, 1500], [40]*4, [10]*4)
+    leg2 = Leg([1500, 1690, 750, 850], [40]*4, [10]*4)
+    leg3 = Leg([1650, 1110, 1320, 840], [40]*4, [10]*4)
+    leg4 = Leg([1520, 910, 1500, 1500], [40]*4, [10]*4)
+    leg5 = Leg([1500, 2240, 1960, 1870], [40]*4, [10]*4)
 
     park = ServoScript(maestro)
     park.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
@@ -206,10 +223,10 @@ def setup_scripts(scripts):
 
     leg0 = Leg([1070, 2070, 980, 1380], [40]*4, [10]*4)
     leg1 = Leg([1960, 1280, 1500, 1500], [40]*4, [10]*4)
-    leg2 = Leg([1500]*4, [0]*4, [0]*4)
-    leg3 = Leg([1750, 1110, 1990, 1550], [40]*4, [10]*4)
+    leg2 = Leg([1500, 1690, 1380, 1550], [40]*4, [10]*4)
+    leg3 = Leg([1650, 1110, 1990, 1550], [40]*4, [10]*4)
     leg4 = Leg([820, 1610, 1500, 1500], [40]*4, [10]*4)
-    leg5 = Leg([1500]*4, [0]*4, [0]*4)
+    leg5 = Leg([1500, 2240, 1300, 1150], [40]*4, [10]*4)
 
     extend = ServoScript(maestro)
     extend.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
@@ -219,7 +236,7 @@ if __name__ == '__main__':
     maestro = MaestroController()
     
     scripts = {}
-    setup_scripts(scripts)
+    setup_scripts(maestro, scripts)
     scripts["park"].run_script()
     #time.sleep(3)
     #scripts["extend"].run_script()
