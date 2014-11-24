@@ -21,7 +21,7 @@ SOLID = 3
 class Teensy():
   def __init__(self):
    # Initialize I2C device using the default address
-    self.dev = I2CDevice(0x04, debug=True)
+    self.dev = I2CDevice(0x04, debug=False)
 
   def set_brightness(self, value):
     self.send_command(BRIGHTNESS, [value])
@@ -66,7 +66,6 @@ class Teensy():
     self.set_animation(SOLID)
 
   def send_command(self, cmd, args):
-    print args
     self.dev.write_list(cmd, args)
 
 
