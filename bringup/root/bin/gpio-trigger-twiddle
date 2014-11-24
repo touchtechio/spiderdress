@@ -1,0 +1,2 @@
+#!/bin/sh
+i2cdetect -y -a -r 1 >/dev/null 2>&1

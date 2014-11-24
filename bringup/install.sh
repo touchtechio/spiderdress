@@ -59,4 +59,8 @@ on_remote "grep -q '^KillMode' /lib/systemd/system/sshd@.service 2>/dev/null && 
     sed -i 's/^KillMode.*/KillMode=process/' /lib/systemd/system/sshd@.service || \
     echo 'KillMode=process' >> /lib/systemd/system/sshd@.service"
 
+on_remote "grep -q 'ssid=' /etc/hostapd/hostapd.conf 2>/dev/null && \
+    sed -i 's/^ssid=.*/ssid=_FT_$ID/' /etc/hostapd/hostapd.conf || \
+    echo 'ssid=_FT_$ID' >> /etc/hostapd/hostapd.conf"
+    
 on_remote 'echo root:noside | chpasswd'

@@ -3,6 +3,10 @@
 main() {
     ID=$(if [ -f /home/root/id ]; then cat /home/root/id; else echo 1; fi)
 
+    systemctl stop wpa_supplicant
+    systemctl stop hostapd
+    sleep 0.5
+    
     ifconfig wlan0 down 2>/dev/null
     sleep 1
 

@@ -16,12 +16,12 @@ echo 214 > /sys/class/gpio/export
 echo low > /sys/class/gpio/gpio214/direction
 echo low > /sys/class/gpio/gpio204/direction
 echo low > /sys/class/gpio/gpio205/direction
-echo in > /sys/class/gpio/gpio14/direction
-echo in > /sys/class/gpio/gpio165/direction
+echo in > /sys/class/gpio/gpio14/direction # WORKS ON MINI BREAKOUT
+echo in > /sys/class/gpio/gpio165/direction # WORKS ON MINI BREAKOUT
 echo low > /sys/class/gpio/gpio236/direction
 echo low > /sys/class/gpio/gpio237/direction
 echo in > /sys/class/gpio/gpio212/direction
 echo in > /sys/class/gpio/gpio213/direction
-echo mode1 > /sys/kernel/debug/gpio_debug/gpio28/current_pinmux
-echo mode1 > /sys/kernel/debug/gpio_debug/gpio27/current_pinmux
+echo mode1 > /sys/kernel/debug/gpio_debug/gpio28/current_pinmux  # WORKS ON MINI BREAKOUT
+echo mode1 > /sys/kernel/debug/gpio_debug/gpio27/current_pinmux  # WORKS ON MINI BREAKOUT
 echo high > /sys/class/gpio/gpio214/direction

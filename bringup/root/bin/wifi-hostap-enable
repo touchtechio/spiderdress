@@ -1,0 +1,11 @@
+#!/bin/sh
+
+main() {
+    systemctl stop wpa_supplicant
+    sleep 0.5
+    systemctl start hostapd
+    sleep 5
+}
+
+main
+exit 0

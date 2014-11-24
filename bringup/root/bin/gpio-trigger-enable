@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# TEMPORARY (?): Scanning I2C1 seems to trigger ranging, so nothing to do here.
+exit 0
+
+# These commands are completely speculative. Use at your own risk!
+
+#
+# GPIO 19 is prox ranging start pin
+#     (Mini breakout: GP19, J18 #6, Default: I2C1_SCL)
+#
+# Most obvious place to manipulate is here, mode0 is hopefully
+#     "don't mess with this pin":
+#     $ echo mode0 > /sys/kernel/debug/gpio_debug/gpio19/current_pinmux
+#
+# HOWEVER, exporting the pin and controlling it directly appears to work as
+#     well (throws an error if already mapped)
+#
+echo 19 > /sys/class/gpio/export 2>/dev/null
+#
+# Make it an output
+#     $ echo out > /sys/kernel/debug/gpio_debug/gpio19/current_direction
+echo out > /sys/class/gpio/gpio19/direction
+#
+# Set it to low
+#     $ echo low > /sys/kernel/debug/gpio_debug/gpio19/current_value
+#
+echo 0 > /sys/class/gpio/gpio19/value
+#
+# The above was enough to make it start ranging (using the /debug subsystem)
+#     after it had stopped. The rest may be stupid.
+#     Especially because cat'ing the value still indicates low.
+#
+sleep 0.001
+echo 1 > /sys/class/gpio/gpio19/value
+sleep 0.001
+echo 0 > /sys/class/gpio/gpio19/value
+
+# check results: /sys/kernel/debug/gpio

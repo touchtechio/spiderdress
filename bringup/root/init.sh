@@ -14,7 +14,9 @@ main() {
     
     /home/root/bin/gpio-i2c6-enable
     /home/root/bin/gpio-uart-enable
-    /home/root/bin/adhoc-enable
+    #/home/root/bin/gpio-trigger-enable
+    #/home/root/bin/gpio-trigger-twiddle
+    /home/root/bin/wifi-adhoc-enable
 }
 
 main
