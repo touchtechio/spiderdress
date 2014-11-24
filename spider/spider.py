@@ -8,7 +8,7 @@ class Spider(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.maestro = maestro_controller.MaestroController()
         self.scripts = {}
-        maestro_controller.setup_scripts(scripts)
+        maestro_controller.setup_scripts(self.maestro, self.scripts)
 
     def do_set_position(self, line):
         '''set_position [servo] [angle]
