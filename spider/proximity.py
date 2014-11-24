@@ -1,8 +1,10 @@
 """Provide proximity measurements.
 """
 import sys
+from time import time
 
 from edi2c import ads1x15
+import teensy
 
 
 class Proximity:
@@ -74,12 +76,62 @@ class Proximity:
         return mean
 
 
+class Proxemic(Proximity):
+    INTIMATE = 0
+    PERSONAL = 1
+    SOCIAL = 2
+    PUBLIC = 3
+    RANGE = [45, 120, 280, 720]
+    
+    def __init__(self, *args, **kwargs):
+        Proximity.__init__(self, *args, **kwargs)
+
+    def get_space_distance(self, filter_length=20, rejection_threshold_cm=40):
+        distance = self.read(filter_length, rejection_threshold_cm)
+        
+        for i, limit in enumerate(Proxemic.RANGE):
+            if distance <= limit:
+                return i, distance
+            
+        return len(Proxemic.RANGE) - 1, distance
+
+
 def main(args):
     channels = map(int, args) or Proximity.DEFAULT_CHANNELS
-    pr = Proximity(channels)
+    pr = Proxemic(channels)
+    
+    tsy = None #teensy.Teensy()
+    
+    color_map = [ [255, 0, 0], [255, 255, 0], [0, 0, 255], [0, 0, 0] ]
+    #function_map = [ tsy.set_intimate, tsy.set_personal, tsy.set_social, lambda x: tsy.set_off ]
+    #do_function = lambda x: function_map[x]([255, 255, 180])
+    
+    current_color = None
+    current_space = None
+    current_space_time = 0
     
     while True:
-        print int(round(pr.read() / 10.)) * 10
+        space, distance = pr.get_space_distance(3, 20)
+        now = time()
+
+        if space == current_space:
+            if now - current_space_time < 0.33:
+                continue
+        else:
+            current_space = space
+            current_space_time = now
+            #do_function(space)
+            continue
+
+        #color = color_map[space]
+        #
+        #if color != current_color:
+        #    current_color = color
+        #    tsy.set_color(color)
+        #    tsy.set_proximity_leds(20)
+
+        print int(round(distance)), "\t", space, " "*70, "\r",
+        sys.stdout.flush()
 
 
 if __name__ == '__main__':
