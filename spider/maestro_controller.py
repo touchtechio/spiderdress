@@ -1,6 +1,7 @@
 import serial
 import time
 import collections
+import teensy
 
 #http://www.pololu.com/docs/0J40/5.e
 class MaestroController:
@@ -253,29 +254,57 @@ def setup_scripts(maestro, scripts):
 
 if __name__ == '__main__':
     maestro = MaestroController()
+    teensy = teensy.Teensy()
+    color = [255, 255, 180]
     
     scripts = {}
     setup_scripts(maestro, scripts)
-    scripts["pae"].run_script()
-    while maestro.get_servos_moving() is True:
-        time.sleep(0.1)
-    
-    #time.sleep(3)
-    scripts["ex"].run_script()
-    time.sleep(0.5)
-    while maestro.get_servos_moving() is True:
-        time.sleep(0.1)
 
-    scripts["pae"].run_script()
-    time.sleep(0.5)
-    while maestro.get_servos_moving() is True:
-        time.sleep(0.1)
-    time.sleep(1)
+    while True:
+        scripts["pae"].run_script()
+        while maestro.get_servos_moving() is True:
+            time.sleep(0.1)
+            
+        teensy.set_brightness(255)
+        teensy.set_color(color)
+        teensy.set_intimate(color)
+        time.sleep(3)
 
-    scripts["ju"].run_script()
-    time.sleep(0.5)
-    while maestro.get_servos_moving() is True:
-        time.sleep(0.1)
-    time.sleep(1)
+        scripts["ex"].run_script()
+        teensy.set_brightness(255)
+        teensy.set_color(color)
+        teensy.set_personal(color)
+        time.sleep(0.5)
+        while maestro.get_servos_moving() is True:
+            time.sleep(0.1)
 
-    scripts["paj"].run_script()
+        scripts["pae"].run_script()
+        time.sleep(0.5)
+        while maestro.get_servos_moving() is True:
+            time.sleep(0.1)
+        teensy.set_brightness(255)
+        teensy.set_color(color)
+        teensy.set_intimate(color)
+        time.sleep(1)
+
+        scripts["ju"].run_script()
+        teensy.set_brightness(255)
+        teensy.set_color(color)
+        teensy.set_personal(color)
+        time.sleep(0.5)
+        while maestro.get_servos_moving() is True:
+            time.sleep(0.1)
+        time.sleep(1)
+
+        scripts["paj"].run_script()
+        time.sleep(0.5)
+        while maestro.get_servos_moving() is True:
+            time.sleep(0.1)
+
+        teensy.set_brightness(255)
+        teensy.set_color(color)
+        teensy.set_social(color)
+        time.sleep(5)
+        teensy.set_off()
+        teensy.set_off()
+        teensy.set_off()

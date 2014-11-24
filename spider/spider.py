@@ -1,5 +1,6 @@
 import cmd
-import maestro_controller 
+import maestro_controller
+import teensy
 
 class Spider(cmd.Cmd):
     ''' A command line interface for testing maestro servo driving '''
@@ -7,6 +8,8 @@ class Spider(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.maestro = maestro_controller.MaestroController()
+        self.teensy = teensy.Teensy()
+        self.color = [255, 255, 180]
         self.scripts = {}
         maestro_controller.setup_scripts(self.maestro, self.scripts)
 
@@ -57,6 +60,41 @@ class Spider(cmd.Cmd):
         script = str(args[0])
 
         self.scripts[script].run_script()
+
+    def do_photo_pae(self, line):
+        '''photo_pae
+        Set to park with lights off from extended position. '''
+        self.scripts["pae"].run_script()
+        self.teensy.set_off()
+        self.teensy.set_off()
+        self.teensy.set_off()
+
+    def do_photo_paj(self, line):
+        '''photo_paj
+        Set to park with lights off from jugendstil position. '''
+
+        self.scripts["paj"].run_script()
+        self.teensy.set_off()
+        self.teensy.set_off()
+        self.teensy.set_off()
+
+    def do_photo_ex(self, line):
+        '''photo_ex
+        Set to extend with intimate lights. '''
+
+        self.scripts["ex"].run_script()
+        self.teensy.set_brightness(255)
+        self.teensy.set_color(self.color)
+        self.teensy.set_intimate(self.color)
+
+    def do_photo_ju(self, line):
+        '''photo_ju
+        Set to jugendstil with intimate lights. '''
+
+        self.scripts["ju"].run_script()
+        self.teensy.set_brightness(255)
+        self.teensy.set_color(self.color)
+        self.teensy.set_intimate(self.color)
 
 if __name__ == '__main__':
     Spider().cmdloop()
