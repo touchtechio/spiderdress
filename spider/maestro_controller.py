@@ -72,7 +72,7 @@ class MaestroController:
         cmd = chr(0xaa) + chr(device&0xff) + chr(0x1f) + chr((targets1)&0xff) + chr(channel)
         for byte in target_bits:
             cmd += chr(byte)
-        print ":".join("{:02x}".format(ord(c)) for c in cmd)
+        #print ":".join("{:02x}".format(ord(c)) for c in cmd)
 
         if both_devices is True:
             target_bits2 = []
@@ -92,7 +92,7 @@ class MaestroController:
             cmd2 = chr(0xaa) + chr(0x0d) + chr(0x1f) + chr((targets2)&0xff) + chr(channel2)
             for byte in target_bits2:
                 cmd2 += chr(byte)
-            print ":".join("{:02x}".format(ord(c)) for c in cmd2)
+            #print ":".join("{:02x}".format(ord(c)) for c in cmd2)
             self.serial.write(cmd2)
 
         self.serial.write(cmd)
@@ -109,13 +109,13 @@ class MaestroController:
         cmd1 = chr(0xaa) + chr(0x0c) + chr(0x13)
         self.serial.write(cmd1)
         r = self.serial.read()
-        if r == 0x01:
+        if ord(r) == 1:
             return True
 
         cmd2 = chr(0xaa) + chr(0x0d) + chr(0x13)
         self.serial.write(cmd2)
         r = self.serial.read()
-        if r == 0x01:
+        if ord(r) == 1:
             return True
 
         return False
@@ -210,35 +210,72 @@ def setup_scripts(maestro, scripts):
     """Predefine scripts so that they may be run in response to
     various sensors.
     """
-    leg0 = Leg([1070, 2070, 1560, 2150], [40]*4, [10]*4)
-    leg1 = Leg([1280, 1980, 1500, 1500], [40]*4, [10]*4)
-    leg2 = Leg([1500, 1690, 750, 850], [40]*4, [10]*4)
-    leg3 = Leg([1650, 1110, 1320, 840], [40]*4, [10]*4)
-    leg4 = Leg([1520, 910, 1500, 1500], [40]*4, [10]*4)
-    leg5 = Leg([1500, 2240, 1960, 1870], [40]*4, [10]*4)
-
-    park = ServoScript(maestro)
-    park.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
-    scripts["park"] = park
 
     leg0 = Leg([1070, 2070, 980, 1380], [40]*4, [10]*4)
     leg1 = Leg([1960, 1280, 1500, 1500], [40]*4, [10]*4)
     leg2 = Leg([1500, 1690, 1380, 1550], [40]*4, [10]*4)
     leg3 = Leg([1650, 1110, 1990, 1550], [40]*4, [10]*4)
     leg4 = Leg([820, 1610, 1500, 1500], [40]*4, [10]*4)
-    leg5 = Leg([1500, 2240, 1300, 1150], [40]*4, [10]*4)
-
+    leg5 = Leg([1500, 2030, 1300, 1150], [40]*4, [10]*4)
     extend = ServoScript(maestro)
     extend.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
-    scripts["extend"] = extend
+    scripts["ex"] = extend
+
+    leg0 = Leg([1070, 2070, 1560, 2150], [40]*4, [10]*4)
+    leg1 = Leg([1280, 1980, 1500, 1500], [40]*4, [10]*4)
+    leg2 = Leg([1500, 1690, 750, 850], [40]*4, [10]*4)
+    leg3 = Leg([1650, 1110, 1320, 840], [40]*4, [10]*4)
+    leg4 = Leg([1520, 910, 1500, 1500], [40]*4, [10]*4)
+    leg5 = Leg([1500, 2030, 1960, 1870], [40]*4, [10]*4)
+    parke = ServoScript(maestro)
+    parke.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
+    scripts["pae"] = parke
+
+    leg0 = Leg([1070, 2260, 740, 1500], [20, 5, 20, 20], [8]*4)
+    leg1 = Leg([1950, 1210, 1500, 1500], [20]*4, [8]*4)
+    leg2 = Leg([1500, 1630, 1190, 2000], [20, 3, 20, 50], [8]*4)
+    leg3 = Leg([1650, 940, 2150, 1460], [20, 5, 20, 20], [8]*4)
+    leg4 = Leg([820, 1680, 1500, 1500], [20]*4, [8]*4)
+    leg5 = Leg([1500, 2090, 1500, 740], [20, 3, 20, 50], [8]*4)
+    jugendstil = ServoScript(maestro)
+    jugendstil.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
+    scripts["ju"] = jugendstil
+
+    leg0 = Leg([1070, 2070, 1560, 2150], [20, 5, 20, 20], [8]*4)
+    leg1 = Leg([1280, 1980, 1500, 1500], [20]*4, [8]*4)
+    leg2 = Leg([1500, 1690, 750, 850], [20, 3, 20, 50], [8]*4)
+    leg3 = Leg([1650, 1110, 1320, 840], [20, 5, 20, 20], [8]*4)
+    leg4 = Leg([1520, 910, 1500, 1500], [20]*4, [8]*4)
+    leg5 = Leg([1500, 2030, 1960, 1870], [20, 3, 20, 50], [8]*4)
+    parkj = ServoScript(maestro)
+    parkj.define_script(leg0, leg1, leg2, leg3, leg4, leg5)
+    scripts["paj"] = parkj
 
 if __name__ == '__main__':
     maestro = MaestroController()
     
     scripts = {}
     setup_scripts(maestro, scripts)
-    scripts["park"].run_script()
+    scripts["pae"].run_script()
+    while maestro.get_servos_moving() is True:
+        time.sleep(0.1)
+    
     #time.sleep(3)
-    #scripts["extend"].run_script()
-    time.sleep(3)
-    #scripts["park"].run_script()
+    scripts["ex"].run_script()
+    time.sleep(0.5)
+    while maestro.get_servos_moving() is True:
+        time.sleep(0.1)
+
+    scripts["pae"].run_script()
+    time.sleep(0.5)
+    while maestro.get_servos_moving() is True:
+        time.sleep(0.1)
+    time.sleep(1)
+
+    scripts["ju"].run_script()
+    time.sleep(0.5)
+    while maestro.get_servos_moving() is True:
+        time.sleep(0.1)
+    time.sleep(1)
+
+    scripts["paj"].run_script()
