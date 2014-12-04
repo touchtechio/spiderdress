@@ -56,10 +56,6 @@ uint8_t LED_Breathe_Table[]  = {   80,  87,  95, 103, 112, 121, 131, 141, 151, 1
 Adafruit_NeoPixel leftStrip = Adafruit_NeoPixel(LED_COUNT, NEOPIXEL_RIGHT_PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel rightStrip = Adafruit_NeoPixel(LED_COUNT, NEOPIXEL_LEFT_PIN, NEO_GRB + NEO_KHZ800);
 
-// @deprecated : just for backward compatibility
-Adafruit_NeoPixel strip = leftStrip;
-
-
 int ledsPerBar = LED_COUNT / LED_BARS;
 bool animating = false;
 
@@ -72,7 +68,7 @@ struct RGB {
 
 int current_led_count = LED_COUNT;
 
-int black = strip.Color(0, 0, 0);   // leds off
+int black = leftStrip.Color(0, 0, 0);   // leds off
 RGB current_color = {0, 0, 127};
 
 RGB rgb_blue = {0, 0, 127};
@@ -174,11 +170,11 @@ void paintLeds(int ledCount) {
 
       if (ledCount > i) {
         // leds on
-        setPixelColor(ledIndex, strip.Color(  current_color.r, current_color.g, current_color.b));
+        setPixelColor(ledIndex, leftStrip.Color(  current_color.r, current_color.g, current_color.b));
       } 
       else {
         // leds off
-        setPixelColor(ledIndex, strip.Color( current_color.r, current_color.g, current_color.b / 7 ));
+        setPixelColor(ledIndex, leftStrip.Color( current_color.r, current_color.g, current_color.b / 7 ));
       }
     }
   }
@@ -197,9 +193,6 @@ void set_proximity_leds() {
 }
 
 void leds_off() {
-  Serial.print("Led count is: ");
-  Serial.println(current_led_count);
-  
   shouldContinueAnimating = false;  // stop previous animation
   // set all pixels to off
   for(int i=0;i<current_led_count;i++) {
@@ -221,8 +214,11 @@ void set_color() {
 
 void set_animation(int id) {
   leds_off();  // stop previous animation
+  leds_off();
+  leds_off();
   current_animation_id = id;
   shouldContinueAnimating = true;
+  setBrightness(255);
   int glow_type;
   int glow_speed;
   switch (id) {
@@ -244,7 +240,7 @@ void set_animation(int id) {
     break;
   case SOLID:
     Serial.println("I'm SOLID!");
-    animate_solid(LED_COUNT);
+    animate_solid();
     break;
   default:
     Serial.print(id);
@@ -258,19 +254,15 @@ void animate_glow(int type, int rate) {
   int breath_update = rate / sizeof(LED_Breathe_Table);
   
   while (shouldContinueAnimating) {
-    for (cycle=0; cycle < 4; cycle++) {
-        if (type == 0)
-          uniformBreathe(LED_Breathe_Table, BREATHE_TABLE_SIZE, breath_update, current_color.r, current_color.g, current_color.b);
-        else
-          sequencedBreathe(LED_Breathe_Table, BREATHE_TABLE_SIZE, breath_update, current_color.r, current_color.g, current_color.b);
-      }
+    uniformBreathe(LED_Breathe_Table, BREATHE_TABLE_SIZE, breath_update, current_color.r, current_color.g, current_color.b);
   }
   leds_off();
 }
 
 void animate_solid() {
+  setBrightness(255);
   while(shouldContinueAnimating) {
-    for(int i = 0; i < num_lights; i++) {
+    for(int i = 0; i < current_led_count; i++) {
       setPixelColor(i, current_color.r, current_color.g, current_color.b);
       show();
     }
@@ -333,7 +325,7 @@ void uniformBreathe(uint8_t* breatheTable, uint8_t breatheTableSize, uint16_t up
       breatheBlu = (b * breatheTable[breatheIndex]) / 256;
       setPixelColor(i, breatheRed, breatheGrn, breatheBlu);
     }
-    strip.show();   // write all the pixels out
+    show();   // write all the pixels out
     delay(updatePeriod);
   }
 }
@@ -355,7 +347,7 @@ void sequencedBreathe(uint8_t* breatheTable, uint8_t breatheTableSize, uint16_t 
       breatheBlu = (b * breatheTable[sequenceIndex]) / 256;
       setPixelColor(i, breatheRed, breatheGrn, breatheBlu);
     }
-    strip.show();   // write all the pixels out
+    show();   // write all the pixels out
     delay(updatePeriod);
   }
 }
@@ -373,9 +365,6 @@ void setBrightness (uint8_t brightness) {
 }
 
 void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
-  Serial.println(r);
-  Serial.println(g);
-  Serial.println(b);
   rightStrip.setPixelColor(n, g, r, b);
   leftStrip.setPixelColor(n, g, r, b);
   return;
