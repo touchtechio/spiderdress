@@ -96,7 +96,7 @@ void setup()
 
   // ???
   pinMode(0,OUTPUT);             // for verification
-
+  digitalWrite(11, HIGH);
   paintLeds(12);
 
 }
@@ -105,6 +105,7 @@ void setup()
 // doing nothing as we're handling this with software interupts at this time.
 void loop()
 {
+  set_animation(current_animation_id);
   delay(50);
 }
 
@@ -113,7 +114,7 @@ void loop()
 void receiveEvent(int bytes)
 {
   int cmd_id  = Wire.read();
-  Serial.print("cmd: ");
+  Serial.print("receiveEvent!!!! cmd: ");
   Serial.println(cmd_id);
   int num_bytes = Wire.available();
   Serial.print(num_bytes);
@@ -134,7 +135,6 @@ void receiveEvent(int bytes)
   case BRIGHTNESS:
     Serial.println("Setting Neopixel strip brightness");
     brigthtness = Wire.read();
-    setBrightness(brigthtness);
     break;
   case COUNT:
     Serial.println("Setting Neopixel strip led count");
@@ -143,9 +143,8 @@ void receiveEvent(int bytes)
     break;
   case ANIMATION:
     Serial.println("Setting Animation");
-    leds_off();
-    animation_id = Wire.read();
-    set_animation(animation_id);
+    shouldContinueAnimating = true;
+    current_animation_id = Wire.read();
     break;
   case PROXIMITY:
     Serial.println("Setting leds based on proximity data");
@@ -193,13 +192,13 @@ void set_proximity_leds() {
 }
 
 void leds_off() {
-  shouldContinueAnimating = false;  // stop previous animation
+  shouldContinueAnimating = true;  // stop previous animation
   // set all pixels to off
   for(int i=0;i<current_led_count;i++) {
     setPixelColor(i, black); 
     show();
   }
-
+  shouldContinueAnimating = false;
 }
 
 void set_color() { 
@@ -213,9 +212,6 @@ void set_color() {
 }
 
 void set_animation(int id) {
-  leds_off();  // stop previous animation
-  leds_off();
-  leds_off();
   current_animation_id = id;
   shouldContinueAnimating = true;
   setBrightness(255);
@@ -250,27 +246,22 @@ void set_animation(int id) {
 
 
 void animate_glow(int type, int rate) {
-  int cycle;
-  int breath_update = rate / sizeof(LED_Breathe_Table);
   
-  while (shouldContinueAnimating) {
-    uniformBreathe(LED_Breathe_Table, BREATHE_TABLE_SIZE, breath_update, current_color.r, current_color.g, current_color.b);
-  }
-  leds_off();
+  int breath_update = rate / sizeof(LED_Breathe_Table);
+  uniformBreathe(LED_Breathe_Table, BREATHE_TABLE_SIZE, breath_update, current_color.r, current_color.g, current_color.b);
+
 }
 
 void animate_solid() {
   setBrightness(255);
-  while(shouldContinueAnimating) {
-    for(int i = 0; i < current_led_count; i++) {
-      setPixelColor(i, current_color.r, current_color.g, current_color.b);
-      show();
-    }
+ 
+  for(int i = 0; i < current_led_count; i++) {
+    setPixelColor(i, current_color.r, current_color.g, current_color.b);
+    show();
   }
-  leds_off();
 }
+
 void animate_heartbeat() {
-  while(shouldContinueAnimating) {
     for (int i = 0; i < current_led_count; i++) {
       setPixelColor(i, current_color.r, current_color.g, current_color.b);
     }
@@ -306,8 +297,7 @@ void animate_heartbeat() {
        delay(3);
      }
     delay (50);
-  } 
-  leds_off();  
+  
 }
 
 void uniformBreathe(uint8_t* breatheTable, uint8_t breatheTableSize, uint16_t updatePeriod, uint16_t r, uint16_t g, uint16_t b)
@@ -372,7 +362,7 @@ void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
 
 void setPixelColor(uint16_t n, uint32_t c) {
   rightStrip.setPixelColor(n, c);
-  leftStrip.setPixelColor(n, c);  
+  leftStrip.setPixelColor(n, c);
 }
 
 
