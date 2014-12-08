@@ -4,22 +4,25 @@ import collections
 import teensy
 
 #http://www.pololu.com/docs/0J40/5.e
-class MaestroController:
+class MaestroController(object):
     def __init__(self):
         self.serial = self.get_serial('/dev/ttyMFD1', 9600)
-       
+
     def get_serial(self, tty, baud):
+        """Retrieve and open UART connection to maestro controllers"""
         ser = serial.Serial()
         ser.port = tty
         ser.baudrate = baud
         ser.open()
         return ser
-    
+
     def go_home(self):
+        """Return all servos to "home" position"""
         cmd = chr(0xaa) + chr(0x0c) + chr(0x22)
         self.serial.write(cmd)
 
     def set_position(self, servo, angle):
+        """Set the position of servo to an angle between [-75, 75]"""
         pulse_width = self.translate(angle)
         if pulse_width == -1:
             print "Angle outside of range [-75, 75]"
@@ -33,11 +36,16 @@ class MaestroController:
         low_bits = pulse_width & 0x7f
         high_bits = (pulse_width >> 7) & 0x7f
         channel = servo & 0x7F
-        
-        cmd = chr(0xaa) + chr(device&0xff) + chr(0x04) + chr(channel) + chr(low_bits) + chr(high_bits)
+
+        cmd = chr(0xaa) + chr(device&0xff) + chr(0x04) + chr(channel)
+        cmd = cmd + chr(low_bits) + chr(high_bits)
         self.serial.write(cmd)
 
     def set_position_multiple(self, first_servo, *pulse_widths):
+        """Set position of multiple servos, starting at first servo,
+        going to pulse_widths.length servos. Uses raw pulse width instead
+        of angle conversion.
+        """
         num_targets = len(pulse_widths)
         if first_servo+num_targets > 24:
             print "Too many servo targets."
@@ -99,29 +107,34 @@ class MaestroController:
         self.serial.write(cmd)
 
     def get_position(self, servo):
+        """Return two hex bytes, representing the position of servo as
+        pulse width * 4 per maestro protocol.
+        """
         channel = servo &0x7F
         cmd = chr(0xaa) + chr(0x0c) + chr(0x10) + chr(channel)
         self.serial.write(cmd)
-        w1 = self.serial.read()
-        w2 = self.serial.read()
-        return hex(ord(w1)), hex(ord(w2))
+        byte1 = self.serial.read()
+        byte2 = self.serial.read()
+        return hex(ord(byte1)), hex(ord(byte2))
 
     def get_servos_moving(self):
+        """Returns true if any servos are moving, false otherwise."""
         cmd1 = chr(0xaa) + chr(0x0c) + chr(0x13)
         self.serial.write(cmd1)
-        r = self.serial.read()
-        if ord(r) == 1:
+        byte = self.serial.read()
+        if ord(byte) == 1:
             return True
 
         cmd2 = chr(0xaa) + chr(0x0d) + chr(0x13)
         self.serial.write(cmd2)
-        r = self.serial.read()
-        if ord(r) == 1:
+        byte = self.serial.read()
+        if ord(byte) == 1:
             return True
 
         return False
 
     def set_speed(self, servo, speed):
+        """Set the maximum speed of servo."""
         device = 12
         if servo > 11:
             servo = servo - 12
@@ -129,11 +142,15 @@ class MaestroController:
         channel = servo & 0x7f
         low_bits = speed & 0xff
         high_bits = (speed >> 8) & 0xff
-        cmd = chr(0xaa) + chr(device&0xff) + chr(0x07) + chr(channel) + chr(low_bits) + chr(high_bits)
+        cmd = chr(0xaa) + chr(device&0xff) + chr(0x07) + chr(channel)
+        cmd = cmd + chr(low_bits) + chr(high_bits)
 
         self.serial.write(cmd)
 
     def set_accel(self, servo, accel):
+        """Set the acceleration of servo. Will accelerate up to max speed,
+        then as the servo approaches position, will decelerate smoothly.
+        """
         device = 12
         if servo > 11:
             servo = servo - 12
@@ -146,9 +163,8 @@ class MaestroController:
         self.serial.write(cmd)
 
     def translate(self, angle):
-        # min_pulse, max_pulse, and mid_pulse have been determined by testing since
-        # we don't have a data sheet for these servos. They are in microseconds.
-        min_pulse, max_pulse, mid_pulse = 750, 2250, 1500
+        """Translate an angle to pulse width * 4, for the maestro protocol."""
+        mid_pulse = 1500
         min_angle, max_angle = -75, 75
         if angle < min_angle or angle > max_angle:
             return -1
@@ -158,35 +174,33 @@ class MaestroController:
         val = val * 4 # convert to 1/4us for servo controller protocol.
         return int(val)
 
-class ServoScript:
+class ServoScript(object):
     """Define a script for servo motion.
 
     This takes 6 legs and will attempt to move all servos into their
     positions at provided speed and acceleration.
     """
-    __isDefined = False
-
-    def __init__(self, maestro):
-        self.maestro = maestro
+    def __init__(self, mc):
+        self.maestro = mc
+        self._defined = False
+        self._legs = []
 
     def define_script(self, leg0, leg1, leg2, leg3, leg4, leg5):
         """Store given leg position/speed/acceleration information
         to be run later.
         """
-
-        self.legs = []
-        self.legs.append(leg0)
-        self.legs.append(leg1)
-        self.legs.append(leg2)
-        self.legs.append(leg3)
-        self.legs.append(leg4)
-        self.legs.append(leg5)
-        self.__isDefined = True
+        self._legs.append(leg0)
+        self._legs.append(leg1)
+        self._legs.append(leg2)
+        self._legs.append(leg3)
+        self._legs.append(leg4)
+        self._legs.append(leg5)
+        self._defined = True
 
     def run_script(self):
         """Run the stored script assuming it has been defined."""
 
-        if self.__isDefined is not True:
+        if self._defined is not True:
             print "Must define script before running."
             return
 
@@ -196,9 +210,9 @@ class ServoScript:
         # but not position. This is done so that all servos can
         # move in a syncronized way.
         for i in range(0, 24):
-            self.maestro.set_speed(i, self.legs[i/4].speeds[i%4])
-            self.maestro.set_accel(i, self.legs[i/4].accels[i%4])
-            positions.append(self.legs[i/4].positions[i%4])
+            self.maestro.set_speed(i, self._legs[i/4].speeds[i%4])
+            self.maestro.set_accel(i, self._legs[i/4].accels[i%4])
+            positions.append(self._legs[i/4].positions[i%4])
 
         #print positions
         self.maestro.set_position_multiple(0, *positions)
@@ -256,7 +270,7 @@ if __name__ == '__main__':
     maestro = MaestroController()
     teensy = teensy.Teensy()
     color = [255, 255, 180]
-    
+
     scripts = {}
     setup_scripts(maestro, scripts)
 
@@ -264,7 +278,7 @@ if __name__ == '__main__':
         scripts["pae"].run_script()
         while maestro.get_servos_moving() is True:
             time.sleep(0.1)
-            
+
         teensy.set_brightness(255)
         teensy.set_color(color)
         teensy.set_intimate(color)
