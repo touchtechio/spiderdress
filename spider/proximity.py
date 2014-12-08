@@ -8,16 +8,20 @@ import teensy
 
 
 class Proximity:
-    DEFAULT_CHANNELS=(2, 3)
+    DEFAULT_CHANNELS = (2, 3)
     DEFAULT_VOLTAGE = 5.0
     DEFAULT_PGA = 6144
     DEFAULT_SPS = 250
+    VALID_DISTANCE = (25, 765)
     
     adc = None
     channels = None
     voltage = None
     pga = DEFAULT_PGA
     sps = DEFAULT_SPS
+    
+    _last_warning = 0
+
 
     def __init__(self, channels=DEFAULT_CHANNELS, voltage=DEFAULT_VOLTAGE, sps=DEFAULT_SPS):
         self.adc = ads1x15.ADS1X15(ic=ads1x15.IC_ADS1115)
@@ -27,6 +31,21 @@ class Proximity:
 
         if len(channels) != 2:
             raise ValueError, "Proximity: only two channels are supported"
+
+
+    def is_valid_distance(self, distance):
+        return distance >= Proximity.VALID_DISTANCE[0] and distance <= Proximity.VALID_DISTANCE[1] 
+
+
+    def _maybe_warn(self, message):
+        now = time()
+        elapsed = now - self._last_warning
+        
+        if elapsed < 5:
+            return
+        
+        self._last_warning = now
+        print >> sys.stderr, message
 
 
     def read_once(self):
@@ -56,11 +75,19 @@ class Proximity:
         mean = 0
 
         for i, readings in enumerate(distances):
-            # median filter
+            # Median filter
             readings.sort()
             median = readings[len(readings)/2]
             mean += median
             medians[i] = median
+
+        for i, readings in enumerate(distances):
+            # Bad data rejection
+            bad = sum(0 if self.is_valid_distance(x) else 1 for x in readings)
+            if bad > 0:
+                self._maybe_warn("Proximity: ADC channel %d returned bad data" % self.channels[i])
+                # Automatically return other value
+                return float(medians[(i + 1) % 2])
 
         mean /= float(len(distances))
 
