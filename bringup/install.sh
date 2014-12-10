@@ -23,7 +23,7 @@ on_remote() {
     ssh root@$EDISON_SSH_HOST $@
 }
 
-echo "~/id:"
+echo "PLEASE ENTER A VALUE FOR ~/id:"
 read nid
 echo "$nid" > nid.temp
 echo "ft$nid" > hostname.temp
