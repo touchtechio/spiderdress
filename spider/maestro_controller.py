@@ -1,11 +1,19 @@
+"""maestro_controller.py
+Classes and functions necessary to drive two daisy chained Maestro servo controllers,
+including the ability to define poses and animate between them.
+"""
+
 import serial
 import time
 from itertools import izip
 
 #http://www.pololu.com/docs/0J40/5.e
 class MaestroController(object):
+    """MaestroController gives access to two Maestro's connected via UART, as well as
+    the ability to run animations based on pre defined positions.
+    """
     def __init__(self):
-        self.serial = self.get_serial('/dev/ttyMFD1', 9600)
+        self.serial = get_serial('/dev/ttyMFD1', 9600)
         self.positions = {}
         self.scripts = {}
 
@@ -13,16 +21,9 @@ class MaestroController(object):
         self.current_position = "park"
         self.animate(self.current_position, [1000*6])
 
-    def get_serial(self, tty, baud):
-        """Retrieve and open UART connection to maestro controllers.
-        """
-        ser = serial.Serial()
-        ser.port = tty
-        ser.baudrate = baud
-        ser.open()
-        return ser
-
     def setup_positions(self):
+        """Setup predefined positions and their safe routes.
+        """
         park = ServoPositions([
             [1070, 2070, 1560, 2150], [1280, 1980, 1500, 1500],
             [1500, 1690, 750, 850], [1650, 1110, 1320, 840],
@@ -43,52 +44,45 @@ class MaestroController(object):
         self.positions["jugendstil"] = jugendstil
 
     def animate(self, script_name, animation_times):
-        """Run through script. animation_times should be a list of 6 values
-        for each leg.
+        """Run through script. Animation will take time/2 to reach safe route position, and
+        the remaining time to reach final destination. animation_times should be a list of
+        6 values for each leg.
         """
         animation_times = [t/2 for t in animation_times]
-        common_route = self.find_common_route(
+        common_route = find_common_route(
             self.positions[self.current_position].safe_routes,
             self.positions[script_name].safe_routes)
-        print "common route: ", common_route, "\n"
 
+        #Determine the difference between current position and our common route so we can
+        #calculate the speed and acceleration necessary to get there.
         difference_route = self.positions[self.current_position] - self.positions[common_route]
-        print "diff route: ", str(difference_route), "\n"
         speed_accel_route = []
         for leg, animation_time in izip(difference_route.legs, animation_times):
             for servo in leg:
-                speed_accel_route.append(self.time_to_speed_accel(animation_time, servo, 0))
-        print "speed_accel route: ", speed_accel_route, "\n"
+                speed_accel_route.append(time_to_speed_accel(animation_time, servo, 0))
 
+        #Determine the difference between the common route and our final position so we can
+        #calculate the speed and acceleration necessary to get there.
         difference_final = self.positions[common_route] - self.positions[script_name]
-        print "diff final: ", str(difference_final), "\n"
         speed_accel_final = []
         for leg, animation_time in izip(difference_final.legs, animation_times):
             for servo in leg:
-                speed_accel_final.append(self.time_to_speed_accel(animation_time, servo, 0))
-        print "speed_accel final: ", speed_accel_final, "\n"
+                speed_accel_final.append(time_to_speed_accel(animation_time, servo, 0))
 
-        #animate to route
+        #Animate to common route.
         self.move_to(self.positions[common_route], speed_accel_route)
 
         while self.get_servos_moving() is True:
             time.sleep(0.01)
 
-        #animate to script_name
+        #Animate to final position [script_name].
         self.move_to(self.positions[script_name], speed_accel_final)
 
         self.current_position = script_name
 
-
-    def find_common_route(self, routes1, routes2):
-        common_routes = routes1 & routes2
-
-        if len(common_routes) > 0:
-            return common_routes.pop()
-
-        return "park"
-
     def move_to(self, position, speed_accel):
+        """Send speed, acceleration and position data to the Maestro.
+        """
         pulse_widths = []
 
         # Immediately set the speed and accel values through maestro,
@@ -102,55 +96,24 @@ class MaestroController(object):
 
         self.set_position_multiple(0, *pulse_widths)
 
-    def time_to_speed_accel(self, anim_time, distance, initial_velocity):
-        half_time = float(anim_time)/2
-        half_distance = distance/2.0
-
-        accel = (2.0*(half_distance-(initial_velocity*half_time))) / (half_time**2)
-        max_speed = initial_velocity + (accel * half_time)
-
-        accel = accel * 10 * 80 / 0.25 + 0.5
-        max_speed = max_speed * 10 / 0.25 + 0.5
-
-        return int(max(max_speed, 1)), int(max(accel, 1))
-
     def go_home(self):
         """Return all servos to "home" position.
         """
         cmd = chr(0xaa) + chr(0x0c) + chr(0x22)
         self.serial.write(cmd)
 
-    def set_position(self, servo, angle):
-        """Set the position of servo to an angle between [-75, 75].
-        """
-        pulse_width = self.translate(angle)
-        if pulse_width == -1:
-            print "Angle outside of range [-75, 75]"
-            return
-
-        if servo < 12:
-            device = 12
-        else:
-            device = 13
-            servo = servo - 12
-        low_bits = pulse_width & 0x7f
-        high_bits = (pulse_width >> 7) & 0x7f
-        channel = servo & 0x7F
-
-        cmd = chr(0xaa) + chr(device&0xff) + chr(0x04) + chr(channel)
-        cmd = cmd + chr(low_bits) + chr(high_bits)
-        self.serial.write(cmd)
-
     def set_position_multiple(self, first_servo, *pulse_widths):
-        """Set position of multiple servos, starting at first servo,
-        going to pulse_widths.length servos. Uses raw pulse width instead
-        of angle conversion.
+        """Set position of multiple servos, starting at first servo, going to
+        pulse_widths.length servos. Uses raw pulse width.
         """
         num_targets = len(pulse_widths)
         if first_servo+num_targets > 24:
             print "Too many servo targets."
             return
 
+        #We must determine if the servo range straddles both of the chained Maestro's.
+        #If so, we have to fiddle a bit to make sure we send the correct commands to
+        #each one.
         if first_servo < 12:
             device = 12
         else:
@@ -181,7 +144,6 @@ class MaestroController(object):
         cmd = chr(0xaa) + chr(device&0xff) + chr(0x1f) + chr((targets1)&0xff) + chr(channel)
         for byte in target_bits:
             cmd += chr(byte)
-        #print ":".join("{:02x}".format(ord(c)) for c in cmd)
 
         if both_devices is True:
             target_bits2 = []
@@ -201,7 +163,6 @@ class MaestroController(object):
             cmd2 = chr(0xaa) + chr(0x0d) + chr(0x1f) + chr((targets2)&0xff) + chr(channel2)
             for byte in target_bits2:
                 cmd2 += chr(byte)
-            #print ":".join("{:02x}".format(ord(c)) for c in cmd2)
             self.serial.write(cmd2)
 
         self.serial.write(cmd)
@@ -265,28 +226,23 @@ class MaestroController(object):
 
         self.serial.write(cmd)
 
-    def translate(self, angle):
-        """Translate an angle to pulse width * 4, for the maestro protocol.
-        """
-        mid_pulse = 1500
-        min_angle, max_angle = -75, 75
-        if angle < min_angle or angle > max_angle:
-            return -1
-
-        # according to servo specs, every 10us is ~1 degree.
-        val = mid_pulse + (angle * 10)
-        val = val * 4 # convert to 1/4us for servo controller protocol.
-        return int(val)
-
 class ServoPositions(object):
+    """Holds the positions for 24 legs, and the safe routes required to
+    navigate there.
+    """
     def __init__(self, legs):
         self.legs = legs
         self.safe_routes = set()
 
     def add_safe_route(self, route_name):
+        """Add safe route.
+        """
         self.safe_routes.add(route_name)
 
     def __sub__(self, other):
+        #We want the absolute value of the difference of each matched servo. This
+        #is essentially the distance each servo is traveling. We use this to determine
+        #speed and acceleration values later on.
         abs0 = [abs(a - b) for a, b in zip(self.legs[0], other.legs[0])]
         abs1 = [abs(a - b) for a, b in zip(self.legs[1], other.legs[1])]
         abs2 = [abs(a - b) for a, b in zip(self.legs[2], other.legs[2])]
@@ -298,6 +254,42 @@ class ServoPositions(object):
 
     def __str__(self):
         return str(self.legs)
+
+def get_serial(tty, baud):
+    """Retrieve and open UART connection to maestro controllers.
+    """
+    ser = serial.Serial()
+    ser.port = tty
+    ser.baudrate = baud
+    ser.open()
+    return ser
+
+def time_to_speed_accel(anim_time, distance, initial_velocity):
+    """Convert an animation time over a certain distance with an initial velocity
+    to a speed and acceleration based on the Maestro protocol.
+    """
+    half_time = float(anim_time)/2
+    half_distance = distance/2.0
+
+    accel = (2.0*(half_distance-(initial_velocity*half_time))) / (half_time**2)
+    max_speed = initial_velocity + (accel * half_time)
+
+    accel = accel * 10 * 80 / 0.25 + 0.5
+    max_speed = max_speed * 10 / 0.25 + 0.5
+
+    #Since a speed and acceleration of 0 is basically uncapped according to the
+    #Maestro protocol, we set the minimum to be one.
+    return int(max(max_speed, 1)), int(max(accel, 1))
+
+def find_common_route(routes1, routes2):
+    """Given two sets of safe routes, return an arbitrary safe route in common.
+    """
+    common_routes = routes1 & routes2
+
+    if len(common_routes) > 0:
+        return common_routes.pop()
+
+    return "park"
 
 if __name__ == "__main__":
     MAESTRO = MaestroController()
