@@ -19,7 +19,7 @@ class MaestroController(object):
 
         self.setup_positions()
         self.current_position = "park"
-        self.animate(self.current_position, [1000*6])
+        self.move_to(self.positions[self.current_position], [(10, 10)]*24)
 
     def setup_positions(self):
         """Setup predefined positions and their safe routes.
@@ -92,7 +92,6 @@ class MaestroController(object):
             self.set_speed(i, speed_accel[i][0])
             self.set_accel(i, speed_accel[i][1])
             pulse_widths.append(position.legs[i/4][i%4])
-        print "pulse_widths: ", pulse_widths, "\n"
 
         self.set_position_multiple(0, *pulse_widths)
 
@@ -294,8 +293,17 @@ def find_common_route(routes1, routes2):
 if __name__ == "__main__":
     MAESTRO = MaestroController()
 
-    print "Animate EXTEND: "
-    MAESTRO.animate("extend", [1000, 1000, 1500, 1000, 1000, 1500])
+    print "Animate EXTEND"
+    MAESTRO.animate("extend", [1500, 1500, 1500, 1500, 1500, 1500])
 
-    print "\nAnimate JUGENDSTIL: "
-    MAESTRO.animate("jugendstil", [500, 500, 1500, 500, 500, 1500])
+    while MAESTRO.get_servos_moving() is True:
+        time.sleep(0.01)
+
+    print "\nAnimate JUGENDSTIL"
+    MAESTRO.animate("jugendstil", [3500, 3500, 3500, 3500, 3500, 3500])
+
+    while MAESTRO.get_servos_moving() is True:
+        time.sleep(0.01)
+
+    print "\nAnimate PARK"
+    MAESTRO.animate("park", [2000, 2000, 2000, 2000, 2000, 2000])
