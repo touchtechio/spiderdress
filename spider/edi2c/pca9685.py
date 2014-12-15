@@ -239,7 +239,8 @@ class PCA9685:
             if callable(duration):
                 duration = duration()
 
-            ts = time()
+            if duration:
+                ts = time()
 
             for (channel, on, off) in action:
                 if channel is None or channel < 0 or channel >= CHANNELS:
@@ -278,14 +279,15 @@ class PCA9685:
                     self.dev.write_8(reg + 3, off_h)
                     current[channel][4] = off_h
 
-            elapsed = time() - ts
-            to_sleep = duration - elapsed
+            if duration:
+                elapsed = time() - ts
+                to_sleep = duration - elapsed
 
-            if to_sleep > 0:
-                sleep(to_sleep)
-            elif debug and duration > 0:
-                print >>sys.stderr, "PCA9685: Action specified %.3fms and took %.3fms to execute" \
-                                    % (duration * 1000.0, elapsed * 1000.0)
+                if to_sleep > 0:
+                    sleep(to_sleep)
+                elif debug and duration > 0:
+                    print >>sys.stderr, "PCA9685: Action specified %.3fms and took %.3fms to execute" \
+                                        % (duration * 1000.0, elapsed * 1000.0)
 
 
 CLEANUP_HANDLERS_INSTALLED = False
