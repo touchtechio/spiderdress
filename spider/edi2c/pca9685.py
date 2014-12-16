@@ -302,7 +302,6 @@ def install_cleanup_handlers():
     def cleanup():
         pwm = PCA9685()
         pwm.reset()
-        sys.exit(0)
 
     atexit.register(cleanup)
 
