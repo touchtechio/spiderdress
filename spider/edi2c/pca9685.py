@@ -305,15 +305,22 @@ def install_cleanup_handlers():
 
     atexit.register(cleanup)
 
-    do_cleanup = lambda sig, frame: cleanup()
-    
+    def catch_signal(sig, frame):
+        cleanup()
+        handler = handlers[sig]
+        
+        if callable(handler):
+            handler(sig, frame)
+
     signals = [signal.SIGABRT, signal.SIGFPE, signal.SIGILL,
                signal.SIGINT, signal.SIGSEGV, signal.SIGTERM,
-               signal.SIGKILL]
-    
+               signal.SIGKILL, signal.SIGSTOP, signal.SIGTSTP]
+
+    handlers = {sig: signal.getsignal(sig) for sig in signals}
+        
     for sig in signals:
         try:
-            signal.signal(sig, do_cleanup)
+            signal.signal(sig, catch_signal)
         except Exception, e:
             pass
 
