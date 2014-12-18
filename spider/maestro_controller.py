@@ -70,12 +70,11 @@ class MaestroController(object):
         """
         print "MaestroController listener called with space=", space, " distance=", distance
 
-    def animate(self, script_name, animation_times):
-        """Run through script. Animation will take time/2 to reach safe route position, and
-        the remaining time to reach final destination. animation_times should be a list of
-        6 values for each leg.
+    def animate(self, script_name, animation_time_safe, animation_time_final):
+        """Run through script. Animation will take animation_time_safe to reach safe route
+        position, and animation_time_final to reach final destination. Times should
+        be a list of 6 values for each leg.
         """
-        animation_times = [t/2 for t in animation_times]
         common_route = "park" #find_common_route(
             #self.positions[self.current_position].safe_routes,
             #self.positions[script_name].safe_routes)
@@ -84,7 +83,7 @@ class MaestroController(object):
         #calculate the speed and acceleration necessary to get there.
         difference_route = self.positions[self.current_position] - self.positions[common_route]
         speed_accel_route = []
-        for leg, animation_time in izip(difference_route.legs, animation_times):
+        for leg, animation_time in izip(difference_route.legs, animation_time_safe):
             for servo in leg:
                 speed_accel_route.append(time_to_speed_accel(animation_time, servo, 0))
 
@@ -92,7 +91,7 @@ class MaestroController(object):
         #calculate the speed and acceleration necessary to get there.
         difference_final = self.positions[common_route] - self.positions[script_name]
         speed_accel_final = []
-        for leg, animation_time in izip(difference_final.legs, animation_times):
+        for leg, animation_time in izip(difference_final.legs, animation_time_final):
             for servo in leg:
                 speed_accel_final.append(time_to_speed_accel(animation_time, servo, 0))
 
@@ -322,7 +321,7 @@ if __name__ == "__main__":
     MAESTRO = MaestroController()
 
     print "Animate EXTEND"
-    MAESTRO.animate("extend", [1500, 1500, 1500, 1500, 1500, 1500])
+    MAESTRO.animate("extend", [1500]*6, [1500]*6)
 
     while MAESTRO.get_servos_moving() is True:
         time.sleep(0.01)
@@ -330,7 +329,7 @@ if __name__ == "__main__":
     #print "\nAnimate JUGENDSTIL"
     #MAESTRO.animate("jugendstil", [3500, 3500, 3500, 3500, 3500, 3500])
     print "Animate PARK"
-    MAESTRO.animate("park", [1500]*6)
+    MAESTRO.animate("park", [1500]*6, [1500]*6)
 
     #while MAESTRO.get_servos_moving() is True:
         #time.sleep(0.01)
