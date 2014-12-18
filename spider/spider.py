@@ -1,6 +1,10 @@
 import cmd
+from multiprocessing import Process, Value
+from time import time
 import maestro_controller
 import teensy
+import proximity
+import pubsub
 
 class Spider(cmd.Cmd):
     ''' A command line interface for testing maestro servo driving '''
@@ -9,19 +13,14 @@ class Spider(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.maestro = maestro_controller.MaestroController()
         self.teensy = teensy.Teensy()
+        self.proxemic = proximity.Proxemic(proximity.Proximity.DEFAULT_CHANNELS)
         self.color = [255, 255, 180]
-        self.scripts = {}
-        maestro_controller.setup_scripts(self.maestro, self.scripts)
 
-    def do_set_position(self, line):
-        '''set_position [servo] [angle]
-         Moves leg of specified servo 0-11 to specified angle between -75 to 75 '''
-        
-        args = line.split()
-        servo = int(args[0])
-        angle = int(args[1])
+        pubsub.subscribe(self.maestro.prox_sensor_listener, "proximity_data")
+        #TODO: subscribe with teensy here
 
-        self.maestro.set_position(servo, angle)
+        self.prox_continue = Value('d', True)
+        self.prox_process = Process(target=prox_worker)
 
     def do_set_position_multiple(self, line):
         '''set_position_multiple [servo] [angles]
@@ -55,46 +54,46 @@ class Spider(cmd.Cmd):
 
         self.maestro.set_accel(servo, accel)
 
-    def do_run_script(self, line):
+    def do_get_moving(self, line):
+        '''get_moving
+        '''
+        self.maestro.get_servos_moving()
+
+    def do_animate(self, line):
+        '''animate [script_name]
+        Sets the position of all servos to [script_name] at a constant speed.'''
         args = line.split()
-        script = str(args[0])
+        script_name = args[0]
 
-        self.scripts[script].run_script()
+        self.maestro.animate(script_name, [3000]*6)
 
-    def do_photo_pae(self, line):
-        '''photo_pae
-        Set to park with lights off from extended position. '''
-        self.scripts["pae"].run_script()
-        self.teensy.set_off()
-        self.teensy.set_off()
-        self.teensy.set_off()
+    def do_start_ces_interaction(self, line):
+        '''start_ces_interaction
+        Start proximity sensor that will interact with the legs and the lights.'''
+        self.prox_process.start()
 
-    def do_photo_paj(self, line):
-        '''photo_paj
-        Set to park with lights off from jugendstil position. '''
+    def do_stop_ces_interaction(self, line):
+        '''stop_ces_interaction
+        Stop proximity sensor and interaction.'''
+        self.prox_continue.value = False
+        self.prox_process.join()
 
-        self.scripts["paj"].run_script()
-        self.teensy.set_off()
-        self.teensy.set_off()
-        self.teensy.set_off()
+def prox_worker(self):
+    current_space = None
+    current_space_time = 0
 
-    def do_photo_ex(self, line):
-        '''photo_ex
-        Set to extend with intimate lights. '''
+    while self.prox_continue.value:
+        space, distance = self.proxemic.get_space_distance(3, 20)
+        now = time()
 
-        self.scripts["ex"].run_script()
-        self.teensy.set_brightness(255)
-        self.teensy.set_color(self.color)
-        self.teensy.set_intimate(self.color)
-
-    def do_photo_ju(self, line):
-        '''photo_ju
-        Set to jugendstil with intimate lights. '''
-
-        self.scripts["ju"].run_script()
-        self.teensy.set_brightness(255)
-        self.teensy.set_color(self.color)
-        self.teensy.set_intimate(self.color)
+        if space == current_space:
+            if now - current_space_time < 0.33:
+                continue
+        else:
+            current_space = space
+            current_space_time = now
+            pubsub.send_message("proximity_data", space=space, distance=distance)
+            continue
 
 if __name__ == '__main__':
     Spider().cmdloop()

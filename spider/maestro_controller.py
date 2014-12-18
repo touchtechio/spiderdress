@@ -25,23 +25,50 @@ class MaestroController(object):
         """Setup predefined positions and their safe routes.
         """
         park = ServoPositions([
-            [1070, 2070, 1560, 2150], [1280, 1980, 1500, 1500],
-            [1500, 1690, 750, 850], [1650, 1110, 1320, 840],
-            [1520, 910, 1500, 1500], [1500, 2030, 1960, 1870]])
+            [1370, 1750, 1560, 2230], [1030, 1980, 1500, 1500], [1580, 1780, 880, 736],
+            [1450, 1100, 1330, 780], [1820, 880, 1500, 1500], [1340, 1970, 1870, 1990]])
 
         extend = ServoPositions([
-            [1070, 2070, 980, 1380], [1960, 1280, 1500, 1500],
-            [1500, 1690, 1380, 1550], [1650, 1110, 1990, 1550],
-            [820, 1610, 1500, 1500], [1500, 2030, 1300, 1150]])
+            [1370, 1750, 1020, 1570], [1710, 1500, 1500, 1500], [1580, 1780, 1420, 1410],
+            [1460, 980, 1890, 1360], [1130, 1410, 1500, 1500], [1360, 1890, 1210, 1210]])
+
+        extend_half = ServoPositions([
+            [1370, 1760, 1330, 1790], [1210, 1760, 1500, 1500], [1580, 1810, 1020, 1210],
+            [1450, 1080, 1560, 1200], [1610, 1100, 1500, 1500], [1340, 1970, 1700, 1610]])
 
         jugendstil = ServoPositions([
-            [1070, 2260, 740, 1500], [1950, 1210, 1500, 1500],
-            [1500, 1630, 1190, 2000], [1650, 940, 2150, 1460],
-            [820, 1680, 1500, 1500], [1500, 2090, 1500, 740]])
+            [1510, 1990, 1270, 1590], [1250, 1480, 1500, 1500], [1640, 1900, 1020, 1590],
+            [1250, 900, 1530, 1270], [1560, 1460, 1500, 1500], [1350, 1920, 1630, 1090]])
+
+        challenge = ServoPositions([
+            [1500, 1860, 1410, 1910], [1130, 1610, 1500, 1500], [1640, 1900, 1020, 1600],
+            [1340, 970, 1450, 1020], [1610, 1300, 1500, 1500], [1350, 1910, 1650, 1100]])
+
+        point = ServoPositions([
+            [1240, 1590, 1020, 770], [1190, 1180, 1500, 1500], [1640, 1900, 910, 1700],
+            [1530, 1190, 1810, 2040], [1580, 1730, 1500, 1500], [1350, 1860, 1710, 1020]])
+
+        knife = ServoPositions([
+            [1370, 1750, 1560, 2230], [1650, 1400, 1500, 1500], [1580, 1780, 880, 736],
+            [1450, 1100, 1330, 780], [1150, 1500, 1500, 1500], [1340, 1970, 1870, 1990]])
+
+        push_away = ServoPositions([
+            [1210, 1970, 1240, 1580], [1030, 1980, 1500, 1500], [1580, 1780, 880, 736],
+            [1640, 910, 1670, 1360], [1820, 880, 1500, 1500], [1340, 1970, 1870, 1990]])
 
         self.positions["park"] = park
         self.positions["extend"] = extend
+        self.positions["extend_half"] = extend_half
         self.positions["jugendstil"] = jugendstil
+        self.positions["challenge"] = challenge
+        self.positions["point"] = point
+        self.positions["knife"] = knife
+        self.positions["push_away"] = push_away
+
+    def prox_sensor_listener(self, space, distance):
+        """Based on data from the proximity sensor, drive the legs to position.
+        """
+        print "MaestroController listener called with space=", space, " distance=", distance
 
     def animate(self, script_name, animation_times):
         """Run through script. Animation will take time/2 to reach safe route position, and
@@ -49,9 +76,9 @@ class MaestroController(object):
         6 values for each leg.
         """
         animation_times = [t/2 for t in animation_times]
-        common_route = find_common_route(
-            self.positions[self.current_position].safe_routes,
-            self.positions[script_name].safe_routes)
+        common_route = "park" #find_common_route(
+            #self.positions[self.current_position].safe_routes,
+            #self.positions[script_name].safe_routes)
 
         #Determine the difference between current position and our common route so we can
         #calculate the speed and acceleration necessary to get there.
@@ -183,14 +210,14 @@ class MaestroController(object):
         cmd1 = chr(0xaa) + chr(0x0c) + chr(0x13)
         self.serial.write(cmd1)
         byte = self.serial.read()
-        if ord(byte) == 1:
+        if len(byte) > 0 and ord(byte) == 1:
             return True
 
-        cmd2 = chr(0xaa) + chr(0x0d) + chr(0x13)
-        self.serial.write(cmd2)
-        byte = self.serial.read()
-        if ord(byte) == 1:
-            return True
+        # cmd2 = chr(0xaa) + chr(0x0d) + chr(0x13)
+        # self.serial.write(cmd2)
+        # byte = self.serial.read()
+        # if len(byte) > 0 and ord(byte) == 1:
+        #     return True
 
         return False
 
@@ -260,6 +287,7 @@ def get_serial(tty, baud):
     ser = serial.Serial()
     ser.port = tty
     ser.baudrate = baud
+    ser.timeout = 0.5
     ser.open()
     return ser
 
@@ -299,11 +327,13 @@ if __name__ == "__main__":
     while MAESTRO.get_servos_moving() is True:
         time.sleep(0.01)
 
-    print "\nAnimate JUGENDSTIL"
-    MAESTRO.animate("jugendstil", [3500, 3500, 3500, 3500, 3500, 3500])
+    #print "\nAnimate JUGENDSTIL"
+    #MAESTRO.animate("jugendstil", [3500, 3500, 3500, 3500, 3500, 3500])
+    print "Animate PARK"
+    MAESTRO.animate("park", [1500]*6)
 
-    while MAESTRO.get_servos_moving() is True:
-        time.sleep(0.01)
+    #while MAESTRO.get_servos_moving() is True:
+        #time.sleep(0.01)
 
-    print "\nAnimate PARK"
-    MAESTRO.animate("park", [2000, 2000, 2000, 2000, 2000, 2000])
+    #print "\nAnimate PARK"
+    #MAESTRO.animate("park", [2000, 2000, 2000, 2000, 2000, 2000])
