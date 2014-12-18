@@ -15,10 +15,12 @@ class MaestroController(object):
     def __init__(self):
         self.serial = get_serial('/dev/ttyMFD1', 9600)
         self.positions = {}
-        self.scripts = {}
+        self.animations = {}
 
         self.setup_positions()
+        self.setup_animations()
         self.current_position = "park"
+        self.animating = False
         self.move_to(self.positions[self.current_position], [(10, 10)]*24)
 
     def setup_positions(self):
@@ -26,7 +28,7 @@ class MaestroController(object):
         """
         park = ServoPositions([
             [1370, 1750, 1560, 2230], [1030, 1980, 1500, 1500], [1580, 1780, 880, 736],
-            [1450, 1100, 1330, 780], [1820, 880, 1500, 1500], [1340, 1970, 1870, 1990]])
+            [1450, 1100, 1330, 780], [1770, 890, 1500, 1500], [1340, 1970, 1870, 1990]])
 
         extend = ServoPositions([
             [1370, 1750, 1020, 1570], [1710, 1500, 1500, 1500], [1580, 1780, 1420, 1410],
@@ -65,19 +67,56 @@ class MaestroController(object):
         self.positions["knife"] = knife
         self.positions["push_away"] = push_away
 
+        self.positions["extend"].add_safe_route("extend_half")
+        self.positions["extend_half"].add_safe_route("extend")
+
+    def setup_animations(self):
+        """Setup predefined animations (tuple of a list of positions, and times).
+        """
+        park = [("park", [1500]*6, [1500]*6)]
+        extend = [("extend", [1500]*6, [1500]*6)]
+        breathe = [
+            ("park", [1500]*6, [1500]*6),
+            ("extend", [1500]*6, [1500]*6),
+            ("extend_half", [1500]*6, [1500]*6),
+            ("extend", [1500]*6, [1500]*6),
+            ("park", [1500]*6, [1500]*6)]
+
+        self.animations["park"] = park
+        self.animations["extend"] = extend
+        self.animations["breathe"] = breathe
+
     def prox_sensor_listener(self, space, distance):
         """Based on data from the proximity sensor, drive the legs to position.
         """
         print "MaestroController listener called with space=", space, " distance=", distance
 
+    def animation(self, animation_name):
+        """Run through animation found with animation_name.
+        """
+        anim = self.animations[animation_name]
+
+        if self.animating:
+            return
+
+        self.animating = True
+        for pos_time_tuple in anim:
+            self.animate(pos_time_tuple[0], pos_time_tuple[1], pos_time_tuple[2])
+            while self.get_servos_moving() is True:
+                time.sleep(0.01)
+        self.animating = False
+
     def animate(self, script_name, animation_time_safe, animation_time_final):
-        """Run through script. Animation will take animation_time_safe to reach safe route
+        """Run through script. Animate will take animation_time_safe to reach safe route
         position, and animation_time_final to reach final destination. Times should
         be a list of 6 values for each leg.
         """
-        common_route = "park" #find_common_route(
-            #self.positions[self.current_position].safe_routes,
-            #self.positions[script_name].safe_routes)
+        if script_name in self.positions[self.current_position].safe_routes:
+            common_route = script_name
+        else:
+            common_route = find_common_route(
+                self.positions[self.current_position].safe_routes,
+                self.positions[script_name].safe_routes)
 
         #Determine the difference between current position and our common route so we can
         #calculate the speed and acceleration necessary to get there.
@@ -98,11 +137,12 @@ class MaestroController(object):
         #Animate to common route.
         self.move_to(self.positions[common_route], speed_accel_route)
 
-        while self.get_servos_moving() is True:
-            time.sleep(0.01)
+        if script_name != common_route:
+            while self.get_servos_moving() is True:
+                time.sleep(0.01)
 
-        #Animate to final position [script_name].
-        self.move_to(self.positions[script_name], speed_accel_final)
+            #Animate to final position [script_name].
+            self.move_to(self.positions[script_name], speed_accel_final)
 
         self.current_position = script_name
 
@@ -258,6 +298,7 @@ class ServoPositions(object):
     def __init__(self, legs):
         self.legs = legs
         self.safe_routes = set()
+        self.add_safe_route("park")
 
     def add_safe_route(self, route_name):
         """Add safe route.

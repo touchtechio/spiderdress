@@ -60,12 +60,22 @@ class Spider(cmd.Cmd):
         self.maestro.get_servos_moving()
 
     def do_animate(self, line):
-        '''animate [script_name]
-        Sets the position of all servos to [script_name] at a constant speed.'''
+        '''animate [script_name] [speed_safe] [speed_final]
+        Sets the position of all servos to [script_name] at [speed_safe] and [speed_final].'''
         args = line.split()
         script_name = args[0]
+        speed_safe = int(args[1])
+        speed_final = int(args[2])
 
-        self.maestro.animate(script_name, [1500]*6, [1500]*6)
+        self.maestro.animate(script_name, [speed_safe]*6, [speed_final]*6)
+
+    def do_animation(self, line):
+        '''animation [animation_name]
+        Runs through the animation [animation_name]'''
+        args = line.split()
+        animation_name = args[0]
+
+        self.maestro.animation(animation_name)
 
     def do_start_ces_interaction(self, line):
         '''start_ces_interaction
