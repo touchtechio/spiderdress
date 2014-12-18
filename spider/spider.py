@@ -65,7 +65,7 @@ class Spider(cmd.Cmd):
         args = line.split()
         script_name = args[0]
 
-        self.maestro.animate(script_name, [3000]*6)
+        self.maestro.animate(script_name, [1500]*6, [1500]*6)
 
     def do_start_ces_interaction(self, line):
         '''start_ces_interaction
