@@ -87,6 +87,11 @@ class Spider(cmd.Cmd):
         self.prox_continue.value = False
         self.prox_process.join()
 
+    def do_test_get_position(self, line):
+        '''test_get_position
+        Test Maestro's get position on chained Maestro.'''
+        self.maestro.test_get_position()
+
 def prox_worker(self):
     current_space = None
     current_space_time = 0

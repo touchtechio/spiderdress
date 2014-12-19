@@ -172,7 +172,7 @@ class MaestroController(object):
         for leg, animation_time in izip(difference_final.legs, animation_times):
             for servo in leg:
                 speed_accel.append(time_to_speed_accel(animation_time, servo, 0))
-        for i in range(3):
+        for i in range(6):
             for j in range(4):
                 if max_value < difference_final.legs[i][j]:
                     max_value = difference_final.legs[i][j]
@@ -295,7 +295,8 @@ class MaestroController(object):
         byte1 = self.serial.read()
         byte2 = self.serial.read()
 
-        if len(byte1 < 0) or len(byte2 < 0):
+        if len(byte1) < 1 or len(byte2) < 1:
+            self.serial.flushInput()
             return None
 
         return int(int(ord(byte1) | (ord(byte2) << 8)) / 4)
@@ -347,6 +348,21 @@ class MaestroController(object):
             chr(low_bits) + chr(high_bits)
 
         self.serial.write(cmd)
+
+    def test_get_position(self):
+        """Test get_position on chained maestro.
+        """
+        i = 0
+        timeout_count = 0
+
+        while i < 100:
+            position = self.get_position(13)
+            if position is None:
+                timeout_count += 1
+
+            i += 1
+
+        print "Num failures: ", timeout_count
 
 class ServoPositions(object):
     """Holds the positions for 24 legs, and the safe routes required to
