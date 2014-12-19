@@ -11,8 +11,8 @@ class Proximity:
     DEFAULT_CHANNELS = (2, 3)
     DEFAULT_VOLTAGE = 5.0
     DEFAULT_PGA = 6144
-    DEFAULT_SPS = 250
-    VALID_DISTANCE = (25, 765)
+    DEFAULT_SPS = 860
+    VALID_DISTANCE = (20, 770)
     
     adc = None
     channels = None
@@ -22,14 +22,13 @@ class Proximity:
     
     _last_warning = 0
 
-
     def __init__(self, channels=DEFAULT_CHANNELS, voltage=DEFAULT_VOLTAGE, sps=DEFAULT_SPS):
         self.adc = ads1x15.ADS1X15(ic=ads1x15.IC_ADS1115)
         self.channels = channels
         self.voltage = float(voltage)
         self.sps = sps
 
-        if len(channels) != 2:
+        if len(channels) > 2:
             raise ValueError, "Proximity: only two channels are supported"
 
 
@@ -42,10 +41,11 @@ class Proximity:
         elapsed = now - self._last_warning
         
         if elapsed < 5:
-            return
+            return False
         
         self._last_warning = now
         print >> sys.stderr, message
+        return True
 
 
     def read_once(self):
@@ -60,12 +60,12 @@ class Proximity:
         return result
 
 
-    def read(self, filter_length=20, rejection_threshold_cm=40):
+    def read(self, filter_length=10, rejection_threshold_cm=30):
         """Take median filtered readings.
         """
         distances = ([], [])
         
-        while filter_length >= 0:
+        while filter_length > 0:
             reading = self.read_once()
             distances[0].append(reading[0])
             distances[1].append(reading[1])
@@ -113,7 +113,7 @@ class Proxemic(Proximity):
     def __init__(self, *args, **kwargs):
         Proximity.__init__(self, *args, **kwargs)
 
-    def get_space_distance(self, filter_length=20, rejection_threshold_cm=40):
+    def get_space_distance(self, filter_length=10, rejection_threshold_cm=30):
         distance = self.read(filter_length, rejection_threshold_cm)
         
         for i, limit in enumerate(Proxemic.RANGE):
@@ -126,38 +126,34 @@ class Proxemic(Proximity):
 def main(args):
     channels = map(int, args) or Proximity.DEFAULT_CHANNELS
     pr = Proxemic(channels)
-    
-    tsy = None #teensy.Teensy()
+
+    tsy = teensy.Teensy()
     
     color_map = [ [255, 0, 0], [255, 255, 0], [0, 0, 255], [0, 0, 0] ]
     #function_map = [ tsy.set_intimate, tsy.set_personal, tsy.set_social, lambda x: tsy.set_off ]
     #do_function = lambda x: function_map[x]([255, 255, 180])
-    
+
     current_color = None
     current_space = None
     current_space_time = 0
     
     while True:
-        space, distance = pr.get_space_distance(3, 20)
+        space, distance = pr.get_space_distance(10, 30)
         now = time()
 
-        if space == current_space:
-            if now - current_space_time < 0.33:
-                continue
-        else:
-            current_space = space
-            current_space_time = now
-            #do_function(space)
-            continue
+        if space != current_space:
+            if now - current_space_time > 1.33:
+                current_space = space
+                current_space_time = now
+                #do_function(current_space)
 
-        #color = color_map[space]
-        #
-        #if color != current_color:
-        #    current_color = color
-        #    tsy.set_color(color)
-        #    tsy.set_proximity_leds(20)
+                color = color_map[current_space]
+                
+                if color != current_color:
+                    current_color = color
+                    tsy.set_intimate(color)
 
-        print int(round(distance)), "\t", space, " "*70, "\r",
+        print int(round(distance)), "\t", current_space, " "*70, "\r",
         sys.stdout.flush()
 
 
