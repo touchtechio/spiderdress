@@ -42,6 +42,10 @@ class MaestroController(object):
             [1510, 1990, 1270, 1590], [1250, 1480, 1500, 1500], [1640, 1900, 1020, 1590],
             [1250, 900, 1530, 1270], [1560, 1460, 1500, 1500], [1350, 1920, 1630, 1090]])
 
+        jugendstil_half = ServoPositions([
+            [1370, 1750, 1560, 2230], [1250, 1480, 1500, 1500], [1640, 1900, 1020, 1590],
+            [1450, 1100, 1330, 780], [1560, 1460, 1500, 1500], [1350, 1920, 1630, 1090]])
+
         challenge = ServoPositions([
             [1500, 1860, 1410, 1910], [1130, 1610, 1500, 1500], [1640, 1900, 1020, 1600],
             [1340, 970, 1450, 1020], [1610, 1300, 1500, 1500], [1350, 1910, 1650, 1100]])
@@ -58,33 +62,76 @@ class MaestroController(object):
             [1210, 1970, 1240, 1580], [1030, 1980, 1500, 1500], [1580, 1780, 880, 736],
             [1640, 910, 1670, 1360], [1820, 880, 1500, 1500], [1340, 1970, 1870, 1990]])
 
+        wiggle_up = ServoPositions([
+            [1370, 1750, 1400, 1520], [1270, 1430, 1500, 1500], [1580, 1780, 1070, 1640],
+            [1450, 1050, 1500, 1470], [1500, 1510, 1500, 1500], [1340, 1970, 1590, 1100]])
+
+        wiggle_down = ServoPositions([
+            [1370, 1750, 1400, 1610], [1270, 1340, 1500, 1500], [1580, 1780, 1070, 1560],
+            [1450, 1050, 1500, 1390], [1500, 1600, 1500, 1500], [1340, 1970, 1590, 1190]])
+
         self.positions["park"] = park
         self.positions["extend"] = extend
         self.positions["extend_half"] = extend_half
         self.positions["jugendstil"] = jugendstil
+        self.positions["jugendstil_half"] = jugendstil_half
         self.positions["challenge"] = challenge
         self.positions["point"] = point
         self.positions["knife"] = knife
         self.positions["push_away"] = push_away
-
-        self.positions["extend"].add_safe_route("extend_half")
-        self.positions["extend_half"].add_safe_route("extend")
+        self.positions["wiggle_up"] = wiggle_up
+        self.positions["wiggle_down"] = wiggle_down
 
     def setup_animations(self):
         """Setup predefined animations (tuple of a list of positions, and times).
         """
-        park = [("park", [1500]*6, [1500]*6)]
-        extend = [("extend", [1500]*6, [1500]*6)]
+        park = [("park", [1500]*6)]
+        extend = [("extend", [1500]*6)]
         breathe = [
-            ("park", [1500]*6, [1500]*6),
-            ("extend", [1500]*6, [1500]*6),
-            ("extend_half", [1500]*6, [1500]*6),
-            ("extend", [1500]*6, [1500]*6),
-            ("park", [1500]*6, [1500]*6)]
+            ("extend", [1500]*6),
+            ("park", [1500]*6),
+            ("extend_half", [1500]*6),
+            ("park", [1500]*6)]
+        knife = [
+            ("knife", [600]*6),
+            ("pause", 500),
+            ("park", [1000]*6)]
+        attack = [
+            ("extend", [750]*6),
+            ("park", [1500]*6)]
+        point = [ #note, don't use point as much
+            ("point", [1500]*6),
+            ("park", [1500]*6)]
+        jugendstil = [ #note, pause around 0.5 between position
+            ("jugendstil_half", [1500]*6),
+            ("pause", 750),
+            ("jugendstil", [1500]*6),
+            ("pause", 900),
+            ("park", [1500]*6)]
+        challenge = [
+            ("challenge", [1500]*6),
+            ("pause", 1000),
+            ("park", [1500]*6)]
+        wiggle = [ 
+            ("wiggle_up", [750]*6),
+            ("wiggle_down", [100]*6),
+            ("wiggle_up", [100]*6),
+            ("wiggle_down", [100]*6),
+            ("wiggle_up", [100]*6),
+            ("park", [750]*6)]
+        dance = [
+            ]
 
         self.animations["park"] = park
         self.animations["extend"] = extend
         self.animations["breathe"] = breathe
+        self.animations["knife"] = knife
+        self.animations["attack"] = attack
+        self.animations["point"] = point
+        self.animations["jugendstil"] = jugendstil
+        self.animations["challenge"] = challenge
+        self.animations["wiggle"] = wiggle
+        self.animations["dance"] = dance
 
     def prox_sensor_listener(self, space, distance):
         """Based on data from the proximity sensor, drive the legs to position.
@@ -94,55 +141,54 @@ class MaestroController(object):
     def animation(self, animation_name):
         """Run through animation found with animation_name.
         """
-        anim = self.animations[animation_name]
-
         if self.animating:
             return
 
+        anim = self.animations[animation_name]
+        anim_length = len(anim)
+
         self.animating = True
-        for pos_time_tuple in anim:
-            self.animate(pos_time_tuple[0], pos_time_tuple[1], pos_time_tuple[2])
-            while self.get_servos_moving() is True:
-                time.sleep(0.01)
+        i = 0
+        while i < anim_length:
+            self.animate(anim[i][0], anim[i][1])
+            i += 1
         self.animating = False
 
-    def animate(self, script_name, animation_time_safe, animation_time_final):
+    def animate(self, script_name, animation_times):
         """Run through script. Animate will take animation_time_safe to reach safe route
         position, and animation_time_final to reach final destination. Times should
         be a list of 6 values for each leg.
         """
-        if script_name in self.positions[self.current_position].safe_routes:
-            common_route = script_name
-        else:
-            common_route = find_common_route(
-                self.positions[self.current_position].safe_routes,
-                self.positions[script_name].safe_routes)
-
-        #Determine the difference between current position and our common route so we can
-        #calculate the speed and acceleration necessary to get there.
-        difference_route = self.positions[self.current_position] - self.positions[common_route]
-        speed_accel_route = []
-        for leg, animation_time in izip(difference_route.legs, animation_time_safe):
-            for servo in leg:
-                speed_accel_route.append(time_to_speed_accel(animation_time, servo, 0))
+        print script_name
+        if script_name == "pause":
+            time.sleep((animation_times+100)/1000)
+            return
 
         #Determine the difference between the common route and our final position so we can
         #calculate the speed and acceleration necessary to get there.
-        difference_final = self.positions[common_route] - self.positions[script_name]
-        speed_accel_final = []
-        for leg, animation_time in izip(difference_final.legs, animation_time_final):
+        difference_final = self.positions[self.current_position] - self.positions[script_name]
+        max_value, max_index = difference_final.legs[0][0], (0, 0)
+        speed_accel = []
+        for leg, animation_time in izip(difference_final.legs, animation_times):
             for servo in leg:
-                speed_accel_final.append(time_to_speed_accel(animation_time, servo, 0))
+                speed_accel.append(time_to_speed_accel(animation_time, servo, 0))
+        for i in range(3):
+            for j in range(4):
+                if max_value < difference_final.legs[i][j]:
+                    max_value = difference_final.legs[i][j]
+                    max_index = (i, j)
+        index = max_index[0]*4+max_index[1]
 
         #Animate to common route.
-        self.move_to(self.positions[common_route], speed_accel_route)
+        self.move_to(self.positions[script_name], speed_accel)
+        time.sleep(0.1)
 
-        if script_name != common_route:
-            while self.get_servos_moving() is True:
-                time.sleep(0.01)
-
-            #Animate to final position [script_name].
-            self.move_to(self.positions[script_name], speed_accel_final)
+        are_servos_moving = True
+        max_value = self.positions[script_name].legs[max_index[0]][max_index[1]]
+        while are_servos_moving:
+            current_position = self.get_position(index)
+            if current_position is None or abs(current_position - max_value) <= 20:
+                are_servos_moving = False
 
         self.current_position = script_name
 
@@ -154,10 +200,12 @@ class MaestroController(object):
         # Immediately set the speed and accel values through maestro,
         # but not position. This is done so that all servos can
         # move in a syncronized way.
-        for i in range(0, 24):
+        i = 0
+        while i < 24:
             self.set_speed(i, speed_accel[i][0])
             self.set_accel(i, speed_accel[i][1])
             pulse_widths.append(position.legs[i/4][i%4])
+            i += 1
 
         self.set_position_multiple(0, *pulse_widths)
 
@@ -236,12 +284,21 @@ class MaestroController(object):
         """Return two hex bytes, representing the position of servo as
         pulse width * 4 per maestro protocol.
         """
+        if servo < 12:
+            device = 12
+        else:
+            device = 13
+            servo = servo - 12
         channel = servo &0x7F
-        cmd = chr(0xaa) + chr(0x0c) + chr(0x10) + chr(channel)
+        cmd = chr(0xaa) + chr(device) + chr(0x10) + chr(channel)
         self.serial.write(cmd)
         byte1 = self.serial.read()
         byte2 = self.serial.read()
-        return hex(ord(byte1)), hex(ord(byte2))
+
+        if len(byte1 < 0) or len(byte2 < 0):
+            return None
+
+        return int(int(ord(byte1) | (ord(byte2) << 8)) / 4)
 
     def get_servos_moving(self):
         """Returns true if any servos are moving, false otherwise.
@@ -298,12 +355,6 @@ class ServoPositions(object):
     def __init__(self, legs):
         self.legs = legs
         self.safe_routes = set()
-        self.add_safe_route("park")
-
-    def add_safe_route(self, route_name):
-        """Add safe route.
-        """
-        self.safe_routes.add(route_name)
 
     def __sub__(self, other):
         #We want the absolute value of the difference of each matched servo. This
@@ -362,18 +413,10 @@ if __name__ == "__main__":
     MAESTRO = MaestroController()
 
     print "Animate EXTEND"
-    MAESTRO.animate("extend", [1500]*6, [1500]*6)
+    MAESTRO.animate("extend", [1500]*6)
 
     while MAESTRO.get_servos_moving() is True:
         time.sleep(0.01)
 
-    #print "\nAnimate JUGENDSTIL"
-    #MAESTRO.animate("jugendstil", [3500, 3500, 3500, 3500, 3500, 3500])
     print "Animate PARK"
-    MAESTRO.animate("park", [1500]*6, [1500]*6)
-
-    #while MAESTRO.get_servos_moving() is True:
-        #time.sleep(0.01)
-
-    #print "\nAnimate PARK"
-    #MAESTRO.animate("park", [2000, 2000, 2000, 2000, 2000, 2000])
+    MAESTRO.animate("park", [1500]*6)

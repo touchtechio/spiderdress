@@ -12,8 +12,8 @@ class Spider(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.maestro = maestro_controller.MaestroController()
-        self.teensy = teensy.Teensy()
-        self.proxemic = proximity.Proxemic(proximity.Proximity.DEFAULT_CHANNELS)
+        #self.teensy = teensy.Teensy()
+        #self.proxemic = proximity.Proxemic(proximity.Proximity.DEFAULT_CHANNELS)
         self.color = [255, 255, 180]
 
         pubsub.subscribe(self.maestro.prox_sensor_listener, "proximity_data")
@@ -60,14 +60,13 @@ class Spider(cmd.Cmd):
         self.maestro.get_servos_moving()
 
     def do_animate(self, line):
-        '''animate [script_name] [speed_safe] [speed_final]
-        Sets the position of all servos to [script_name] at [speed_safe] and [speed_final].'''
+        '''animate [script_name][speed_final]
+        Sets the position of all servos to [script_name] at [speed_final].'''
         args = line.split()
         script_name = args[0]
-        speed_safe = int(args[1])
-        speed_final = int(args[2])
+        speed_final = int(args[1])
 
-        self.maestro.animate(script_name, [speed_safe]*6, [speed_final]*6)
+        self.maestro.animate(script_name, [speed_final]*6)
 
     def do_animation(self, line):
         '''animation [animation_name]
