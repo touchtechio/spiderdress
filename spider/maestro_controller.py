@@ -172,7 +172,7 @@ class MaestroController(object):
         for leg, animation_time in izip(difference_final.legs, animation_times):
             for servo in leg:
                 speed_accel.append(time_to_speed_accel(animation_time, servo, 0))
-        for i in range(6):
+        for i in range(3):
             for j in range(4):
                 if max_value < difference_final.legs[i][j]:
                     max_value = difference_final.legs[i][j]
