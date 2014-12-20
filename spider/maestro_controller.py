@@ -98,7 +98,7 @@ class MaestroController(object):
             ("park", [1000]*6)]
         attack = [
             ("extend", [750]*6),
-            ("park", [1500]*6)]
+            ("park", [900]*6)]
         point = [ #note, don't use point as much
             ("point", [1500]*6),
             ("park", [1500]*6)]
@@ -119,6 +119,11 @@ class MaestroController(object):
             ("wiggle_down", [100]*6),
             ("wiggle_up", [100]*6),
             ("park", [750]*6)]
+        ninja = [
+            ("extend", [600]*6),
+            ("park", [1000]*6),
+            ("knife", [500]*6),
+            ("park", [1500]*6)]
         dance = [
             ]
 
@@ -131,6 +136,7 @@ class MaestroController(object):
         self.animations["jugendstil"] = jugendstil
         self.animations["challenge"] = challenge
         self.animations["wiggle"] = wiggle
+        self.animations["ninja"] = ninja
         self.animations["dance"] = dance
 
     def prox_sensor_listener(self, space, distance):
@@ -178,17 +184,20 @@ class MaestroController(object):
                     max_value = difference_final.legs[i][j]
                     max_index = (i, j)
         index = max_index[0]*4+max_index[1]
+        print max_index
+        max_value = self.positions[script_name].legs[max_index[0]][max_index[1]]
 
         #Animate to common route.
         self.move_to(self.positions[script_name], speed_accel)
-        time.sleep(0.1)
+        time.sleep(0.05)
 
         are_servos_moving = True
-        max_value = self.positions[script_name].legs[max_index[0]][max_index[1]]
         while are_servos_moving:
             current_position = self.get_position(index)
-            if current_position is None or abs(current_position - max_value) <= 20:
+            if current_position is None or abs(current_position - max_value) <= max_value*0.02:
                 are_servos_moving = False
+            if current_position is not None:
+                print current_position
 
         self.current_position = script_name
 
