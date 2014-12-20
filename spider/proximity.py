@@ -2,6 +2,7 @@
 """
 import sys
 from time import time
+import threading
 
 from edi2c import ads1x15
 import teensy
@@ -121,6 +122,27 @@ class Proxemic(Proximity):
                 return i, distance
             
         return len(Proxemic.RANGE) - 1, distance
+
+
+    def _monitor_space_thread(self, callback):
+        current_space = None
+        current_space_time = 0
+
+        while True:
+            space, distance = self.get_space_distance()
+            now = time()
+
+            if space != current_space:
+                if now - current_space_time > 1.33:
+                    current_space = space
+                    current_space_time = now
+                    if not callback(current_space):
+                        return
+
+
+    def monitor_space(self, callback):
+        monitor_thread = threading.Thread(target=self._monitor_space_thread, args=(callback,))
+        monitor_thread.start()
 
 
 def main(args):
