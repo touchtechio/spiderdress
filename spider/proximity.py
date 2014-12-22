@@ -142,8 +142,8 @@ class Proxemic(Proximity):
                         return
 
 
-    def monitor_space(self, callback):
-        monitor_thread = threading.Thread(target=self._monitor_space_thread, args=(callback,))
+    def monitor_space(self, callback, distance_callback):
+        monitor_thread = threading.Thread(target=self._monitor_space_thread, args=(callback,distance_callback))
         monitor_thread.start()
 
 
