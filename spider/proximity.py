@@ -124,13 +124,15 @@ class Proxemic(Proximity):
         return len(Proxemic.RANGE) - 1, distance
 
 
-    def _monitor_space_thread(self, callback):
+    def _monitor_space_thread(self, callback, distance_callback):
         current_space = None
         current_space_time = 0
 
         while True:
             space, distance = self.get_space_distance()
             now = time()
+
+            distance_callback(distance)
 
             if space != current_space:
                 if now - current_space_time > 1.33:
