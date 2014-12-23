@@ -16,71 +16,33 @@ class MaestroController(object):
         self.serial = get_serial('/dev/ttyMFD1', 9600)
         self.positions = {}
         self.animations = {}
+        self.animations_by_zone = {}
 
-        self.setup_positions()
+        self.setup_positions("positions_dress_a")
         self.setup_animations()
         self.current_position = "park"
         self.animating = False
         self.move_to(self.positions[self.current_position], [(10, 10)]*24)
 
-    def setup_positions(self):
+    def setup_positions(self, filename):
         """Setup predefined positions and their safe routes.
         """
-        park = ServoPositions([
-            [1370, 1750, 1560, 2230], [1030, 1980, 1500, 1500], [1580, 1780, 880, 736],
-            [1450, 1100, 1330, 780], [1770, 890, 1500, 1500], [1340, 1970, 1870, 1990]])
+        position_file = open(filename, "r")
+        line = position_file.readline()
+        while line != "":
+            leg_positions = []
 
-        extend = ServoPositions([
-            [1370, 1750, 1020, 1570], [1710, 1500, 1500, 1500], [1580, 1780, 1420, 1410],
-            [1460, 980, 1890, 1360], [1130, 1410, 1500, 1500], [1360, 1890, 1210, 1210]])
+            #Position name
+            position_name = line.rstrip('\n')
 
-        extend_half = ServoPositions([
-            [1370, 1760, 1330, 1790], [1210, 1760, 1500, 1500], [1580, 1810, 1020, 1210],
-            [1450, 1080, 1560, 1200], [1610, 1100, 1500, 1500], [1340, 1970, 1700, 1610]])
+            #Read in the leg values
+            for i in range(6):
+                pos = position_file.readline().split(',')
+                pos = [int(s) for s in pos]
+                leg_positions.append(pos)
 
-        jugendstil = ServoPositions([
-            [1510, 1990, 1270, 1590], [1250, 1480, 1500, 1500], [1640, 1900, 1020, 1590],
-            [1250, 900, 1530, 1270], [1560, 1460, 1500, 1500], [1350, 1920, 1630, 1090]])
-
-        jugendstil_half = ServoPositions([
-            [1370, 1750, 1560, 2230], [1250, 1480, 1500, 1500], [1640, 1900, 1020, 1590],
-            [1450, 1100, 1330, 780], [1560, 1460, 1500, 1500], [1350, 1920, 1630, 1090]])
-
-        challenge = ServoPositions([
-            [1500, 1860, 1410, 1910], [1130, 1610, 1500, 1500], [1640, 1900, 1020, 1600],
-            [1340, 970, 1450, 1020], [1610, 1300, 1500, 1500], [1350, 1910, 1650, 1100]])
-
-        point = ServoPositions([
-            [1240, 1590, 1020, 770], [1190, 1180, 1500, 1500], [1640, 1900, 910, 1700],
-            [1530, 1190, 1810, 2040], [1580, 1730, 1500, 1500], [1350, 1860, 1710, 1020]])
-
-        knife = ServoPositions([
-            [1370, 1750, 1560, 2230], [1650, 1400, 1500, 1500], [1580, 1780, 880, 736],
-            [1450, 1100, 1330, 780], [1150, 1500, 1500, 1500], [1340, 1970, 1870, 1990]])
-
-        push_away = ServoPositions([
-            [1210, 1970, 1240, 1580], [1030, 1980, 1500, 1500], [1580, 1780, 880, 736],
-            [1640, 910, 1670, 1360], [1820, 880, 1500, 1500], [1340, 1970, 1870, 1990]])
-
-        wiggle_up = ServoPositions([
-            [1370, 1750, 1400, 1520], [1270, 1430, 1500, 1500], [1580, 1780, 1070, 1640],
-            [1450, 1050, 1500, 1470], [1500, 1510, 1500, 1500], [1340, 1970, 1590, 1100]])
-
-        wiggle_down = ServoPositions([
-            [1370, 1750, 1400, 1610], [1270, 1340, 1500, 1500], [1580, 1780, 1070, 1560],
-            [1450, 1050, 1500, 1390], [1500, 1600, 1500, 1500], [1340, 1970, 1590, 1190]])
-
-        self.positions["park"] = park
-        self.positions["extend"] = extend
-        self.positions["extend_half"] = extend_half
-        self.positions["jugendstil"] = jugendstil
-        self.positions["jugendstil_half"] = jugendstil_half
-        self.positions["challenge"] = challenge
-        self.positions["point"] = point
-        self.positions["knife"] = knife
-        self.positions["push_away"] = push_away
-        self.positions["wiggle_up"] = wiggle_up
-        self.positions["wiggle_down"] = wiggle_down
+            self.positions[position_name] = ServoPositions(leg_positions)
+            line = position_file.readline()
 
     def setup_animations(self):
         """Setup predefined animations (tuple of a list of positions, and times).
@@ -106,13 +68,13 @@ class MaestroController(object):
             ("jugendstil_half", [1500]*6),
             ("pause", 750),
             ("jugendstil", [1500]*6),
-            ("pause", 900),
+            ("pause", 750),
             ("park", [1500]*6)]
         challenge = [
             ("challenge", [1500]*6),
             ("pause", 1000),
             ("park", [1500]*6)]
-        wiggle = [ 
+        wiggle = [
             ("wiggle_up", [750]*6),
             ("wiggle_down", [100]*6),
             ("wiggle_up", [100]*6),
@@ -138,6 +100,13 @@ class MaestroController(object):
         self.animations["wiggle"] = wiggle
         self.animations["ninja"] = ninja
         self.animations["dance"] = dance
+
+        #TODO: Make sure this is correct.
+        self.animations_by_zone["calm"] = ["breathe", "wiggle", "dance"]
+        self.animations_by_zone["sensing"] = ["challenge", "point", "jugendstil"]
+        self.animations_by_zone["aggression"] = ["knife", "attack", "ninja"]
+        self.animations_by_zone["public"] = ["park"]
+        self.animations_by_zone["intimate"] = ["push_away"]
 
     def prox_sensor_listener(self, space, distance):
         """Based on data from the proximity sensor, drive the legs to position.
@@ -173,19 +142,20 @@ class MaestroController(object):
         #Determine the difference between the common route and our final position so we can
         #calculate the speed and acceleration necessary to get there.
         difference_final = self.positions[self.current_position] - self.positions[script_name]
-        max_value, max_index = difference_final.legs[0][0], (0, 0)
+        max_diff, max_index = difference_final.legs[0][0], (0, 0)
         speed_accel = []
         for leg, animation_time in izip(difference_final.legs, animation_times):
             for servo in leg:
                 speed_accel.append(time_to_speed_accel(animation_time, servo, 0))
         for i in range(3):
             for j in range(4):
-                if max_value < difference_final.legs[i][j]:
-                    max_value = difference_final.legs[i][j]
+                if max_diff < difference_final.legs[i][j]:
+                    max_diff = difference_final.legs[i][j]
                     max_index = (i, j)
         index = max_index[0]*4+max_index[1]
-        print max_index
         max_value = self.positions[script_name].legs[max_index[0]][max_index[1]]
+        print "Max index: ", max_index, index
+        print "Max value: ", max_value
 
         #Animate to common route.
         self.move_to(self.positions[script_name], speed_accel)
@@ -194,10 +164,9 @@ class MaestroController(object):
         are_servos_moving = True
         while are_servos_moving:
             current_position = self.get_position(index)
-            if current_position is None or abs(current_position - max_value) <= max_value*0.02:
+            print "position: ", current_position
+            if current_position is not None and abs(current_position - max_value) <= max_diff*0.03:
                 are_servos_moving = False
-            if current_position is not None:
-                print current_position
 
         self.current_position = script_name
 
@@ -253,7 +222,7 @@ class MaestroController(object):
         channel = int(first_servo) & 0x7f
         for pulse_width in pulse_widths[:12-first_servo]:
             if pulse_width < 736 or pulse_width > 2272:
-                print "Pulse width outside of range [736, 2272]"
+                print "Pulse width outside of range [736, 2272] for controller 12", pulse_width
                 return
 
             pulse_width = int(pulse_width) * 4
@@ -272,7 +241,7 @@ class MaestroController(object):
             channel2 = 0
             for pulse_width in pulse_widths[12-first_servo:]:
                 if pulse_width < 736 or pulse_width > 2272:
-                    print "Pulse width outside of range [736, 2272]"
+                    print "Pulse width outside of range [736, 2272] for controller 13", pulse_width
                     return
 
                 pulse_width = int(pulse_width) * 4
@@ -293,6 +262,7 @@ class MaestroController(object):
         """Return two hex bytes, representing the position of servo as
         pulse width * 4 per maestro protocol.
         """
+        self.serial.flushInput()
         if servo < 12:
             device = 12
         else:
@@ -303,12 +273,14 @@ class MaestroController(object):
         self.serial.write(cmd)
         byte1 = self.serial.read()
         byte2 = self.serial.read()
+        self.serial.flushInput()
 
         if len(byte1) < 1 or len(byte2) < 1:
-            self.serial.flushInput()
+            return None
+        if ord(byte2) > 35:
             return None
 
-        return int(int(ord(byte1) | (ord(byte2) << 8)) / 4)
+        return int((ord(byte1) | (ord(byte2) << 8)) / 4)
 
     def get_servos_moving(self):
         """Returns true if any servos are moving, false otherwise.
@@ -326,6 +298,16 @@ class MaestroController(object):
         #     return True
 
         return False
+
+    def get_errors(self, device):
+        cmd = chr(0xaa) + chr(device) + chr(0x21)
+        self.serial.write(cmd)
+        response = self.serial.read(size=2)
+        if len(response) < 2:
+            print "Get Error had a read error."
+            self.serial.flushInput()
+
+        print response.encode("hex")
 
     def set_speed(self, servo, speed):
         """Set the maximum speed of servo.
@@ -365,7 +347,7 @@ class MaestroController(object):
         timeout_count = 0
 
         while i < 100:
-            position = self.get_position(13)
+            position = self.get_position(11)
             if position is None:
                 timeout_count += 1
 

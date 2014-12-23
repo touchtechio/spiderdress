@@ -59,6 +59,15 @@ class Spider(cmd.Cmd):
         '''
         self.maestro.get_servos_moving()
 
+    def do_get_errors(self, line):
+        '''get_error
+        '''
+
+        args = line.split()
+        device = int(args[0])
+
+        self.maestro.get_errors(device)
+
     def do_animate(self, line):
         '''animate [script_name][speed_final]
         Sets the position of all servos to [script_name] at [speed_final].'''
