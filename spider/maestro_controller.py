@@ -7,6 +7,7 @@ import serial
 import time
 from multiprocessing import Process, Value
 from itertools import izip
+import teensy
 
 #http://www.pololu.com/docs/0J40/5.e
 class MaestroController(object):
@@ -18,6 +19,8 @@ class MaestroController(object):
     SOCIAL = 2
     PUBLIC = 3
 
+    COLOR = [255, 255, 180]
+
     def __init__(self):
         self.serial = get_serial('/dev/ttyMFD1', 9600)
         self.positions = {}
@@ -26,11 +29,17 @@ class MaestroController(object):
 
         self.setup_positions("positions_dress_a")
         self.setup_animations()
+
         self.current_position = "park"
-        self.current_space = Value('d', MaestroController.SOCIAL, lock=True)
+        self.current_space = Value('d', MaestroController.PUBLIC, lock=True)
+
         self.run_ces = Value('b', False, lock=True)
-        self.ces_process = Process(target=self._ces_animation_process)
+        self.ces_animation_process = Process(target=self._ces_animation_process)
         self.animating = False
+
+        self.tsy = teensy.Teensy()
+        self.ces_teensy_process = Process(target=self._ces_teensy_process)
+
         self.move_to(self.positions[self.current_position], [(10, 10)]*24)
 
     def setup_positions(self, filename):
@@ -129,20 +138,48 @@ class MaestroController(object):
 
     def start_ces_animation(self):
         self.run_ces.value = True
-        self.ces_process.start()
+        self.ces_teensy_process.start()
+        self.ces_animation_process.start()
 
     def stop_ces_animation(self):
         self.run_ces.value = False
-        self.ces_process.join()
+        self.ces_teensy_process.join()
+        self.ces_animation_process.join()
+
+        self.ces_teensy_process = Process(target=self._ces_teensy_process)
+        self.ces_animation_process = Process(target=self._ces_animation_process)
 
     def _ces_animation_process(self):
         while self.run_ces.value:
-            if self.current_space.value == MaestroController.INTIMATE:
+            #print self.current_space.value
+            space = self.current_space.value
+            if space == MaestroController.INTIMATE:
                 self.animation("park")
-            elif self.current_space.value == MaestroController.PERSONAL:
+                time.sleep(0.5)
+            elif space == MaestroController.PERSONAL:
                 self.animation("knife")
             else:
                 self.animation("park")
+                time.sleep(0.5)
+
+    def _ces_teensy_process(self):
+        space = self.current_space.value
+        while self.run_ces.value:
+            prev_space = space
+            space = self.current_space.value
+
+            if space == prev_space:
+                continue
+
+            if space == MaestroController.INTIMATE:
+                self.tsy.set_intimate(MaestroController.COLOR)
+            elif space == MaestroController.PERSONAL:
+                self.tsy.set_personal(MaestroController.COLOR)
+            elif space == MaestroController.SOCIAL:
+                self.tsy.set_social(MaestroController.COLOR)
+            elif space == MaestroController.PUBLIC:
+                #TODO: change when Karli updates teensy.
+                self.tsy.set_social(MaestroController.COLOR)
 
     def animation(self, animation_name):
         """Run through animation found with animation_name.
@@ -179,12 +216,13 @@ class MaestroController(object):
         for leg, animation_time in izip(difference_final.legs, animation_times):
             for servo in leg:
                 speed_accel.append(time_to_speed_accel(animation_time, servo, 0))
-        for i in range(3):
+        for i in range(6):
             for j in range(4):
                 if max_diff < difference_final.legs[i][j]:
                     max_diff = difference_final.legs[i][j]
                     max_index = (i, j)
         index = max_index[0]*4+max_index[1]
+        #print max_index
         max_value = self.positions[script_name].legs[max_index[0]][max_index[1]]
 
         #Animate to common route.
@@ -194,6 +232,7 @@ class MaestroController(object):
         are_servos_moving = True
         while are_servos_moving:
             current_position = self.get_position(index)
+            #print current_position
             if current_position is not None and abs(current_position - max_value) <= max_diff*0.03:
                 are_servos_moving = False
 
