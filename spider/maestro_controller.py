@@ -5,6 +5,7 @@ including the ability to define poses and animate between them.
 
 import serial
 import time
+from multiprocessing import Process, Value
 from itertools import izip
 
 #http://www.pololu.com/docs/0J40/5.e
@@ -12,6 +13,11 @@ class MaestroController(object):
     """MaestroController gives access to two Maestro's connected via UART, as well as
     the ability to run animations based on pre defined positions.
     """
+    INTIMATE = 0
+    PERSONAL = 1
+    SOCIAL = 2
+    PUBLIC = 3
+
     def __init__(self):
         self.serial = get_serial('/dev/ttyMFD1', 9600)
         self.positions = {}
@@ -21,6 +27,9 @@ class MaestroController(object):
         self.setup_positions("positions_dress_a")
         self.setup_animations()
         self.current_position = "park"
+        self.current_space = Value('d', MaestroController.SOCIAL, lock=True)
+        self.run_ces = Value('b', False, lock=True)
+        self.ces_process = Process(target=self._ces_animation_process)
         self.animating = False
         self.move_to(self.positions[self.current_position], [(10, 10)]*24)
 
@@ -101,22 +110,44 @@ class MaestroController(object):
         self.animations["ninja"] = ninja
         self.animations["dance"] = dance
 
-        #TODO: Make sure this is correct.
         self.animations_by_zone["calm"] = ["breathe", "wiggle", "dance"]
         self.animations_by_zone["sensing"] = ["challenge", "point", "jugendstil"]
         self.animations_by_zone["aggression"] = ["knife", "attack", "ninja"]
         self.animations_by_zone["public"] = ["park"]
         self.animations_by_zone["intimate"] = ["push_away"]
 
-    def prox_sensor_listener(self, space, distance):
-        """Based on data from the proximity sensor, drive the legs to position.
+    def prox_distance_listener(self, distance):
+        """Get distance data from prox sensor.
         """
-        print "MaestroController listener called with space=", space, " distance=", distance
+        pass
+
+    def prox_space_listener(self, space):
+        """Get space data from prox sensor.
+        """
+        self.current_space.value = space
+        return self.run_ces.value
+
+    def start_ces_animation(self):
+        self.run_ces.value = True
+        self.ces_process.start()
+
+    def stop_ces_animation(self):
+        self.run_ces.value = False
+        self.ces_process.join()
+
+    def _ces_animation_process(self):
+        while self.run_ces.value:
+            if self.current_space.value == MaestroController.INTIMATE:
+                self.animation("park")
+            elif self.current_space.value == MaestroController.PERSONAL:
+                self.animation("knife")
+            else:
+                self.animation("park")
 
     def animation(self, animation_name):
         """Run through animation found with animation_name.
         """
-        if self.animating:
+        if self.animating or self.current_position == animation_name:
             return
 
         anim = self.animations[animation_name]
@@ -127,6 +158,7 @@ class MaestroController(object):
         while i < anim_length:
             self.animate(anim[i][0], anim[i][1])
             i += 1
+        time.sleep(3)
         self.animating = False
 
     def animate(self, script_name, animation_times):
@@ -134,7 +166,7 @@ class MaestroController(object):
         position, and animation_time_final to reach final destination. Times should
         be a list of 6 values for each leg.
         """
-        print script_name
+        #print script_name
         if script_name == "pause":
             time.sleep((animation_times+100)/1000)
             return
@@ -154,8 +186,6 @@ class MaestroController(object):
                     max_index = (i, j)
         index = max_index[0]*4+max_index[1]
         max_value = self.positions[script_name].legs[max_index[0]][max_index[1]]
-        print "Max index: ", max_index, index
-        print "Max value: ", max_value
 
         #Animate to common route.
         self.move_to(self.positions[script_name], speed_accel)
@@ -164,7 +194,6 @@ class MaestroController(object):
         are_servos_moving = True
         while are_servos_moving:
             current_position = self.get_position(index)
-            print "position: ", current_position
             if current_position is not None and abs(current_position - max_value) <= max_diff*0.03:
                 are_servos_moving = False
 

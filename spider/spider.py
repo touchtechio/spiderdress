@@ -13,14 +13,8 @@ class Spider(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.maestro = maestro_controller.MaestroController()
         #self.teensy = teensy.Teensy()
-        #self.proxemic = proximity.Proxemic(proximity.Proximity.DEFAULT_CHANNELS)
+        self.proxemic = proximity.Proxemic(proximity.Proximity.DEFAULT_CHANNELS)
         self.color = [255, 255, 180]
-
-        pubsub.subscribe(self.maestro.prox_sensor_listener, "proximity_data")
-        #TODO: subscribe with teensy here
-
-        self.prox_continue = Value('d', True)
-        self.prox_process = Process(target=prox_worker)
 
     def do_set_position_multiple(self, line):
         '''set_position_multiple [servo] [angles]
@@ -88,35 +82,18 @@ class Spider(cmd.Cmd):
     def do_start_ces_interaction(self, line):
         '''start_ces_interaction
         Start proximity sensor that will interact with the legs and the lights.'''
-        self.prox_process.start()
+        self.maestro.start_ces_animation()
+        self.proxemic.monitor_space(self.maestro.prox_space_listener, self.maestro.prox_distance_listener)
 
     def do_stop_ces_interaction(self, line):
         '''stop_ces_interaction
         Stop proximity sensor and interaction.'''
-        self.prox_continue.value = False
-        self.prox_process.join()
+        self.maestro.stop_ces_animation()
 
     def do_test_get_position(self, line):
         '''test_get_position
         Test Maestro's get position on chained Maestro.'''
         self.maestro.test_get_position()
-
-def prox_worker(self):
-    current_space = None
-    current_space_time = 0
-
-    while self.prox_continue.value:
-        space, distance = self.proxemic.get_space_distance(3, 20)
-        now = time()
-
-        if space == current_space:
-            if now - current_space_time < 0.33:
-                continue
-        else:
-            current_space = space
-            current_space_time = now
-            pubsub.send_message("proximity_data", space=space, distance=distance)
-            continue
 
 if __name__ == '__main__':
     Spider().cmdloop()
