@@ -32,7 +32,7 @@ class Respiration(object):
             volts = self.adc.read_single_ended(1, self.pga, self.sps)/1000
             now = time()
 
-            if volts >= 1.13:
+            if volts >= 1.36:
                 if now - time_last_callback >= 2:
                     time_last_callback = now
                     callback()
