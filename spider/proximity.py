@@ -142,8 +142,7 @@ class Proxemic(Proximity):
                     current_space = space
                     current_space_time = now
                     
-                    if current_space != self.last_space:
-                        if abs(distance - self.last_space_distance) > 35:
+                    if current_space != self.last_space and abs(distance - self.last_space_distance) > 35:
                             self.last_space = current_space
                             self.last_space_distance = distance
                     
@@ -169,6 +168,8 @@ def main(args):
     current_color = None
     current_space = None
     current_space_time = 0
+    last_space = -1
+    last_space_distance = 0
     
     while True:
         space, distance = pr.get_space_distance(10, 30)
@@ -178,13 +179,19 @@ def main(args):
             if now - current_space_time > 1.33:
                 current_space = space
                 current_space_time = now
-                #do_function(current_space)
-
-                color = color_map[current_space]
                 
-                if color != current_color:
-                    current_color = color
-                    tsy.set_intimate(color)
+                if current_space != last_space and abs(distance - last_space_distance) > 35:
+                    last_space = current_space
+                    last_space_distance = distance
+
+                    #do_function(current_space)
+
+                    color = color_map[current_space]
+                    
+                    if color != current_color:
+                        current_color = color
+                        tsy.set_intimate(color)
+
 
         print int(round(distance)), "\t", current_space, " "*70, "\r",
         sys.stdout.flush()
