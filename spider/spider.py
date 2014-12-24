@@ -2,9 +2,8 @@ import cmd
 from multiprocessing import Process, Value
 from time import time
 import maestro_controller
-import teensy
+import respiration
 import proximity
-import pubsub
 
 class Spider(cmd.Cmd):
     ''' A command line interface for testing maestro servo driving '''
@@ -12,8 +11,8 @@ class Spider(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.maestro = maestro_controller.MaestroController()
-        #self.teensy = teensy.Teensy()
         self.proxemic = proximity.Proxemic(proximity.Proximity.DEFAULT_CHANNELS)
+        self.respiration = respiration.Respiration()
         self.color = [255, 255, 180]
 
     def do_set_position_multiple(self, line):
@@ -87,11 +86,13 @@ class Spider(cmd.Cmd):
         Start proximity sensor that will interact with the legs and the lights.'''
         self.maestro.start_ces_animation()
         self.proxemic.monitor_space(self.maestro.prox_space_listener, self.maestro.prox_distance_listener)
+        self.respiration.monitor_respiration(self.maestro.respiration_listener)
 
     def do_stop_ces_interaction(self, line):
         '''stop_ces_interaction
         Stop proximity sensor and interaction.'''
         self.maestro.stop_ces_animation()
+        self.respiration.stop_monitor()
 
     def do_test_get_position(self, line):
         '''test_get_position

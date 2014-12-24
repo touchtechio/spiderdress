@@ -32,6 +32,7 @@ class MaestroController(object):
 
         self.current_position = "park"
         self.current_space = Value('d', MaestroController.PUBLIC, lock=True)
+        self.big_breath = Value('b', False, lock=True)
 
         self.run_ces = Value('b', False, lock=True)
         self.ces_animation_process = Process(target=self._ces_animation_process)
@@ -72,6 +73,15 @@ class MaestroController(object):
             ("park", [1500]*6),
             ("extend_half", [1500]*6),
             ("park", [1500]*6)]
+        slow_breathe = [
+            ("extend", [2500]*6),
+            ("park", [2500]*6),
+            ("extend_half", [2500]*6),
+            ("park", [2500]*6),
+            ("extend", [2500]*6),
+            ("park", [2500]*6),
+            ("extend_half", [2500]*6),
+            ("park", [2500]*6)]
         knife = [
             ("knife", [600]*6),
             ("pause", 500),
@@ -110,6 +120,7 @@ class MaestroController(object):
         self.animations["park"] = park
         self.animations["extend"] = extend
         self.animations["breathe"] = breathe
+        self.animations["slow_breathe"] = slow_breathe
         self.animations["knife"] = knife
         self.animations["attack"] = attack
         self.animations["point"] = point
@@ -136,6 +147,9 @@ class MaestroController(object):
         self.current_space.value = space
         return self.run_ces.value
 
+    def respiration_listener(self):
+        self.big_breath.value = True
+
     def start_ces_animation(self):
         self.run_ces.value = True
         self.ces_teensy_process.start()
@@ -153,7 +167,12 @@ class MaestroController(object):
         while self.run_ces.value:
             #print self.current_space.value
             space = self.current_space.value
-            if space == MaestroController.INTIMATE:
+            respiration = self.big_breath.value
+
+            if respiration:
+                self.big_breath.value = False
+                self.animation("slow_breathe")
+            elif space == MaestroController.INTIMATE:
                 self.animation("park")
                 time.sleep(0.5)
             elif space == MaestroController.PERSONAL:
@@ -179,7 +198,7 @@ class MaestroController(object):
                 self.tsy.set_social(MaestroController.COLOR)
             elif space == MaestroController.PUBLIC:
                 #TODO: change when Karli updates teensy.
-                self.tsy.set_social(MaestroController.COLOR)
+                self.tsy.set_animation(teensy.GLOW_SLOW) #GLOW_SLOW for now
 
     def animation(self, animation_name):
         """Run through animation found with animation_name.
