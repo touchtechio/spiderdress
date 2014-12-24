@@ -69,6 +69,7 @@ class MaestroController(object):
         """
         park = [("park", [1500]*6)]
         extend = [("extend", [1500]*6)]
+        push_away = [("push_away", [1000]*6)]
         breathe = [
             ("extend", [1300]*6),
             ("park", [1300]*6),
@@ -123,6 +124,7 @@ class MaestroController(object):
 
         self.animations["park"] = park
         self.animations["extend"] = extend
+        self.animations["push_away"] = push_away
         self.animations["breathe"] = breathe
         self.animations["slow_breathe"] = slow_breathe
         self.animations["knife"] = knife
@@ -176,31 +178,51 @@ class MaestroController(object):
         zone_index = random.choice(self.animations_by_zone["personal"])
         zone_progress = 0
 
+        space = self.current_space.value
+        prev_space = space
+
+        slow_breathe = False
+
         while self.run_ces.value:
             #print self.current_space.value
+            prev_space = space
             space = self.current_space.value
             respiration = self.big_breath.value
 
-            if respiration:
+            if respiration or (slow_breathe and space <= MaestroController.PERSONAL):
                 self.big_breath.value = False
-                if zone_progress != 0:
+                slow_breathe = True
+
+                if zone_progress != 2:
                     zone_index = random.choice(self.animations_by_zone["personal"])
-                zone_progress = 0
+                zone_progress = 2
+
                 self.animation("slow_breathe")
             elif space == MaestroController.INTIMATE:
                 if zone_progress != 0:
                     zone_index = random.choice(self.animations_by_zone["personal"])
                 zone_progress = 0
-                self.animation("park")
+
+                self.animation(self.animations_by_zone["intimate"][0])
             elif space == MaestroController.PERSONAL:
-                self.animation(zone_index[zone_progress])
-                zone_progress += 1
-                if zone_progress >= 3:
+                if prev_space == MaestroController.INTIMATE:
+                    self.animation("park")
                     zone_progress = 2
+                else:
+                    self.animation(zone_index[zone_progress])
+                    zone_progress += 1
+                    if zone_progress >= 3:
+                        zone_progress = 2
             else:
+                if prev_space == MaestroController.INTIMATE:
+                    self.animation("park")
+
                 if zone_progress != 0:
                     zone_index = random.choice(self.animations_by_zone["personal"])
                 zone_progress = 0
+
+                slow_breathe = False
+
                 self.animation(self.animations_by_zone["social_public"][0])
 
     def _ces_teensy_process(self):
