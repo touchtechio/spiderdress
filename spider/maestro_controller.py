@@ -4,7 +4,8 @@ including the ability to define poses and animate between them.
 """
 
 import serial
-import time
+from time import time, sleep
+import random
 from multiprocessing import Process, Value
 from itertools import izip
 import teensy
@@ -69,10 +70,10 @@ class MaestroController(object):
         park = [("park", [1500]*6)]
         extend = [("extend", [1500]*6)]
         breathe = [
-            ("extend", [1500]*6),
-            ("park", [1500]*6),
-            ("extend_half", [1500]*6),
-            ("park", [1500]*6)]
+            ("extend", [1300]*6),
+            ("park", [1300]*6),
+            ("extend_half", [1300]*6),
+            ("park", [1300]*6)]
         slow_breathe = [
             ("extend", [2000]*6),
             ("park", [2000]*6),
@@ -134,10 +135,10 @@ class MaestroController(object):
         self.animations["dance"] = dance
 
         self.animations_by_zone["personal"] = [
-            ["attack", "", "breathe"],
-            ["ninja", "", "breathe"],
-            ["knife", "", "breathe"]]
-        self.animations_by_zone["public"] = ["park"]
+            ["attack", "challenge", "breathe"],
+            ["ninja", "wiggle", "breathe"],
+            ["knife", "jugendstil", "breathe"]]
+        self.animations_by_zone["social_public"] = ["park"]
         self.animations_by_zone["intimate"] = ["push_away"]
 
     def prox_distance_listener(self, distance):
@@ -149,6 +150,7 @@ class MaestroController(object):
         """Get space data from prox sensor.
         """
         self.current_space.value = space
+        print space
         return self.run_ces.value
 
     def respiration_listener(self):
@@ -168,6 +170,13 @@ class MaestroController(object):
         self.ces_animation_process = Process(target=self._ces_animation_process)
 
     def _ces_animation_process(self):
+        random.seed()
+
+        #For PERSONAL prox zone, we run through a series of animations and
+        #must keep track of our progress.
+        zone_index = random.choice(self.animations_by_zone["personal"])
+        zone_progress = 0
+
         while self.run_ces.value:
             #print self.current_space.value
             space = self.current_space.value
@@ -175,15 +184,22 @@ class MaestroController(object):
 
             if respiration:
                 self.big_breath.value = False
+                zone_progress = 0
+                zone_index = random.choice(self.animations_by_zone["personal"])
                 self.animation("slow_breathe")
             elif space == MaestroController.INTIMATE:
                 self.animation("park")
-                time.sleep(0.5)
+                zone_progress = 0
+                random.choice(self.animations_by_zone["personal"])
             elif space == MaestroController.PERSONAL:
-                self.animation("knife")
+                self.animation(zone_index[zone_progress])
+                zone_progress += 1
+                if zone_progress >= 3:
+                    zone_progress = 2
             else:
-                self.animation("park")
-                time.sleep(0.5)
+                zone_progress = 0
+                random.choice(self.animations_by_zone["personal"])
+                self.animation(self.animations_by_zone["social_public"][0])
 
     def _ces_teensy_process(self):
         space = self.current_space.value
@@ -218,7 +234,7 @@ class MaestroController(object):
         while i < anim_length:
             self.animate(anim[i][0], anim[i][1])
             i += 1
-        time.sleep(3)
+        sleep(3)
         self.animating = False
 
     def animate(self, script_name, animation_times):
@@ -228,7 +244,7 @@ class MaestroController(object):
         """
         #print script_name
         if script_name == "pause":
-            time.sleep((animation_times+100)/1000)
+            sleep((animation_times+100)/1000)
             return
 
         #Determine the difference between the common route and our final position so we can
@@ -249,13 +265,13 @@ class MaestroController(object):
 
         #Animate to common route.
         self.move_to(self.positions[script_name], speed_accel)
-        time.sleep(0.05)
+        sleep(0.05)
 
         are_servos_moving = True
         while are_servos_moving:
             current_position = self.get_position(index)
             #print current_position
-            if current_position is not None and abs(current_position - max_value) <= max_diff*0.04:
+            if current_position is not None and abs(current_position - max_value) <= max_diff*0.03:
                 are_servos_moving = False
 
         self.current_position = script_name
@@ -513,7 +529,7 @@ if __name__ == "__main__":
     MAESTRO.animate("extend", [1500]*6)
 
     while MAESTRO.get_servos_moving() is True:
-        time.sleep(0.01)
+        sleep(0.01)
 
     print "Animate PARK"
     MAESTRO.animate("park", [1500]*6)
