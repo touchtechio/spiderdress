@@ -45,7 +45,7 @@ class Proximity:
             return False
         
         self._last_warning = now
-        print >> sys.stderr, message
+        #print >> sys.stderr, message
         return True
 
 
@@ -138,16 +138,13 @@ class Proxemic(Proximity):
             distance_callback(distance)
 
             if space != current_space:
-                if now - current_space_time > 1.33:
+                if now - current_space_time > 1.33 and abs(distance - self.last_space_distance) > 25:
                     current_space = space
                     current_space_time = now
-                    
-                    if current_space != self.last_space and abs(distance - self.last_space_distance) > 35:
-                            self.last_space = current_space
-                            self.last_space_distance = distance
-                    
-                            if not callback(current_space):
-                                return
+                    self.last_space_distance = distance
+            
+                    if not callback(current_space):
+                        return
 
 
     def monitor_space(self, callback, distance_callback):
@@ -176,21 +173,19 @@ def main(args):
         now = time()
 
         if space != current_space:
-            if now - current_space_time > 1.33:
+            if now - current_space_time > 1.33 and abs(distance - last_space_distance) > 25:
                 current_space = space
                 current_space_time = now
-                
-                if current_space != last_space and abs(distance - last_space_distance) > 35:
-                    last_space = current_space
-                    last_space_distance = distance
+                last_space_distance = distance
 
-                    #do_function(current_space)
 
-                    color = color_map[current_space]
+                #do_function(current_space)
+
+                color = color_map[current_space]
                     
-                    if color != current_color:
-                        current_color = color
-                        tsy.set_intimate(color)
+                if color != current_color:
+                    current_color = color
+                    tsy.set_intimate(color)
 
 
         print int(round(distance)), "\t", current_space, " "*70, "\r",
