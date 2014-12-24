@@ -150,7 +150,6 @@ class MaestroController(object):
         """Get space data from prox sensor.
         """
         self.current_space.value = space
-        print space
         return self.run_ces.value
 
     def respiration_listener(self):
@@ -184,21 +183,24 @@ class MaestroController(object):
 
             if respiration:
                 self.big_breath.value = False
+                if zone_progress != 0:
+                    zone_index = random.choice(self.animations_by_zone["personal"])
                 zone_progress = 0
-                zone_index = random.choice(self.animations_by_zone["personal"])
                 self.animation("slow_breathe")
             elif space == MaestroController.INTIMATE:
-                self.animation("park")
+                if zone_progress != 0:
+                    zone_index = random.choice(self.animations_by_zone["personal"])
                 zone_progress = 0
-                random.choice(self.animations_by_zone["personal"])
+                self.animation("park")
             elif space == MaestroController.PERSONAL:
                 self.animation(zone_index[zone_progress])
                 zone_progress += 1
                 if zone_progress >= 3:
                     zone_progress = 2
             else:
+                if zone_progress != 0:
+                    zone_index = random.choice(self.animations_by_zone["personal"])
                 zone_progress = 0
-                random.choice(self.animations_by_zone["personal"])
                 self.animation(self.animations_by_zone["social_public"][0])
 
     def _ces_teensy_process(self):
