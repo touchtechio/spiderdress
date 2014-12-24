@@ -111,6 +111,9 @@ class Proxemic(Proximity):
     PUBLIC = 3
     RANGE = [45, 120, 280, 720]
     
+    last_space_distance = 0
+    last_space = -1
+    
     def __init__(self, *args, **kwargs):
         Proximity.__init__(self, *args, **kwargs)
 
@@ -138,8 +141,14 @@ class Proxemic(Proximity):
                 if now - current_space_time > 1.33:
                     current_space = space
                     current_space_time = now
-                    if not callback(current_space):
-                        return
+                    
+                    if current_space != self.last_space:
+                        if abs(distance - self.last_space_distance) > 35:
+                            self.last_space = current_space
+                            self.last_space_distance = distance
+                    
+                            if not callback(current_space):
+                                return
 
 
     def monitor_space(self, callback, distance_callback):
