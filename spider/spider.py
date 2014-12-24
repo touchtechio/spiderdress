@@ -1,6 +1,4 @@
 import cmd
-from multiprocessing import Process, Value
-from time import time
 import maestro_controller
 import respiration
 import proximity

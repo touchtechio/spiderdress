@@ -74,14 +74,17 @@ class MaestroController(object):
             ("extend_half", [1500]*6),
             ("park", [1500]*6)]
         slow_breathe = [
-            ("extend", [2500]*6),
-            ("park", [2500]*6),
-            ("extend_half", [2500]*6),
-            ("park", [2500]*6),
-            ("extend", [2500]*6),
-            ("park", [2500]*6),
-            ("extend_half", [2500]*6),
-            ("park", [2500]*6)]
+            ("extend", [2000]*6),
+            ("park", [2000]*6),
+            ("extend_half", [1750]*6),
+            ("pause", 450),
+            ("park", [1750]*6),
+            ("pause", 450),
+            ("extend", [2000]*6),
+            ("park", [2000]*6),
+            ("extend_half", [1750]*6),
+            ("pause", 450),
+            ("park", [1750]*6)]
         knife = [
             ("knife", [600]*6),
             ("pause", 500),
@@ -96,7 +99,7 @@ class MaestroController(object):
             ("jugendstil_half", [1500]*6),
             ("pause", 750),
             ("jugendstil", [1500]*6),
-            ("pause", 750),
+            ("pause", 850),
             ("park", [1500]*6)]
         challenge = [
             ("challenge", [1500]*6),
@@ -130,9 +133,10 @@ class MaestroController(object):
         self.animations["ninja"] = ninja
         self.animations["dance"] = dance
 
-        self.animations_by_zone["calm"] = ["breathe", "wiggle", "dance"]
-        self.animations_by_zone["sensing"] = ["challenge", "point", "jugendstil"]
-        self.animations_by_zone["aggression"] = ["knife", "attack", "ninja"]
+        self.animations_by_zone["personal"] = [
+            ["attack", "", "breathe"],
+            ["ninja", "", "breathe"],
+            ["knife", "", "breathe"]]
         self.animations_by_zone["public"] = ["park"]
         self.animations_by_zone["intimate"] = ["push_away"]
 
@@ -241,7 +245,6 @@ class MaestroController(object):
                     max_diff = difference_final.legs[i][j]
                     max_index = (i, j)
         index = max_index[0]*4+max_index[1]
-        #print max_index
         max_value = self.positions[script_name].legs[max_index[0]][max_index[1]]
 
         #Animate to common route.
@@ -252,7 +255,7 @@ class MaestroController(object):
         while are_servos_moving:
             current_position = self.get_position(index)
             #print current_position
-            if current_position is not None and abs(current_position - max_value) <= max_diff*0.03:
+            if current_position is not None and abs(current_position - max_value) <= max_diff*0.04:
                 are_servos_moving = False
 
         self.current_position = script_name
