@@ -22,13 +22,13 @@ class MaestroController(object):
 
     COLOR = [255, 255, 180]
 
-    def __init__(self):
+    def __init__(self, leg_file):
         self.serial = get_serial('/dev/ttyMFD1', 9600)
         self.positions = {}
         self.animations = {}
         self.animations_by_zone = {}
 
-        self.setup_positions("positions_dress_a")
+        self.setup_positions(leg_file)
         self.setup_animations()
 
         self.current_position = "park"
@@ -37,6 +37,10 @@ class MaestroController(object):
 
         self.run_ces = Value('b', False, lock=True)
         self.ces_animation_process = Process(target=self._ces_animation_process)
+
+        self.run_slow_breathe = Value('b', False, lock=True)
+        self.slow_breathe_process = Process(target=self._slow_breathe_process)
+
         self.animating = False
 
         self.tsy = teensy.Teensy()
@@ -243,6 +247,20 @@ class MaestroController(object):
             elif space == MaestroController.PUBLIC:
                 #TODO: change when Karli updates teensy.
                 self.tsy.set_animation(teensy.GLOW_SLOW) #GLOW_SLOW for now
+
+    def start_slow_breathe_mode(self):
+        self.run_slow_breathe.value = True
+        self.slow_breathe_process.start()
+        self.tsy.set_personal(MaestroController.COLOR)
+
+    def stop_slow_breathe_mode(self):
+        self.run_slow_breathe.value = False
+        self.slow_breathe_process.join()
+        self.slow_breathe_process = Process(target=self._slow_breathe_process)
+
+    def _slow_breathe_process(self):
+        while self.run_slow_breathe.value:
+            self.animation("slow_breathe")
 
     def animation(self, animation_name):
         """Run through animation found with animation_name.
@@ -547,7 +565,7 @@ def find_common_route(routes1, routes2):
     return "park"
 
 if __name__ == "__main__":
-    MAESTRO = MaestroController()
+    MAESTRO = MaestroController("positions_dress_a")
 
     print "Animate EXTEND"
     MAESTRO.animate("extend", [1500]*6)
