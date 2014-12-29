@@ -1,3 +1,4 @@
+import sys
 import cmd
 import maestro_controller
 import respiration
@@ -6,9 +7,9 @@ import proximity
 class SpiderCommand(cmd.Cmd):
     ''' A command line interface for testing maestro servo driving '''
 
-    def __init__(self):
+    def __init__(self, leg_file):
         cmd.Cmd.__init__(self)
-        self.maestro = maestro_controller.MaestroController()
+        self.maestro = maestro_controller.MaestroController(leg_file)
         self.proxemic = proximity.Proxemic(proximity.Proximity.DEFAULT_CHANNELS)
         self.respiration = respiration.Respiration()
         self.color = [255, 255, 180]
@@ -98,4 +99,4 @@ class SpiderCommand(cmd.Cmd):
         self.maestro.test_get_position()
 
 if __name__ == '__main__':
-    SpiderCommand().cmdloop()
+    SpiderCommand(sys.argv[1]).cmdloop()
