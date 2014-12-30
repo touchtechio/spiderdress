@@ -73,23 +73,25 @@ class MaestroController(object):
         """
         park = [("park", [1500]*6)]
         extend = [("extend", [1500]*6)]
-        push_away = [("push_away", [1000]*6)]
+        push_away = [
+            ("push_away", [1000]*6),
+            ("park", [1000]*6)]
         breathe = [
             ("extend", [1300]*6),
             ("park", [1300]*6),
             ("extend_half", [1300]*6),
             ("park", [1300]*6)]
         slow_breathe = [
-            ("extend", [2000]*6),
-            ("park", [2000]*6),
-            ("extend_half", [1750]*6),
-            ("pause", 450),
+            ("extend", [1750]*6),
             ("park", [1750]*6),
-            ("pause", 450),
-            ("extend", [2000]*6),
-            ("park", [2000]*6),
             ("extend_half", [1750]*6),
-            ("pause", 450),
+            #("pause", 450),
+            ("park", [1750]*6),
+            #("pause", 450),
+            ("extend", [1750]*6),
+            ("park", [1750]*6),
+            ("extend_half", [1750]*6),
+            #("pause", 450),
             ("park", [1750]*6)]
         knife = [
             ("knife", [600]*6),
@@ -98,9 +100,6 @@ class MaestroController(object):
         attack = [
             ("extend", [750]*6),
             ("park", [900]*6)]
-        point = [ #note, don't use point as much
-            ("point", [1500]*6),
-            ("park", [1500]*6)]
         jugendstil = [ #note, pause around 0.5 between position
             ("jugendstil_half", [1500]*6),
             ("pause", 750),
@@ -113,10 +112,10 @@ class MaestroController(object):
             ("park", [1500]*6)]
         wiggle = [
             ("wiggle_up", [750]*6),
-            ("wiggle_down", [100]*6),
-            ("wiggle_up", [100]*6),
-            ("wiggle_down", [100]*6),
-            ("wiggle_up", [100]*6),
+            ("wiggle_down", [150]*6),
+            ("wiggle_up", [150]*6),
+            ("wiggle_down", [150]*6),
+            ("wiggle_up", [150]*6),
             ("park", [750]*6)]
         ninja = [
             ("extend", [600]*6),
@@ -133,7 +132,6 @@ class MaestroController(object):
         self.animations["slow_breathe"] = slow_breathe
         self.animations["knife"] = knife
         self.animations["attack"] = attack
-        self.animations["point"] = point
         self.animations["jugendstil"] = jugendstil
         self.animations["challenge"] = challenge
         self.animations["wiggle"] = wiggle
