@@ -69,7 +69,6 @@ struct RGB {
 int current_led_count = LED_COUNT;
 
 int black = leftStrip.Color(0, 0, 0);   // leds off
-RGB current_color = {0, 0, 127};
 
 RGB rgb_blue = {0, 0, 127};
 RGB pure_white = {255, 255, 180};
@@ -77,6 +76,7 @@ RGB blue_in_between_state = {200, 200, 255};
 
 int current_brightness = 200;
 int current_animation_id = 0;
+RGB current_color = pure_white;
 
 // controls how long animation plays
 boolean shouldContinueAnimating = true;
