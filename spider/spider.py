@@ -1,24 +1,29 @@
 import sys
-from multiprocessing import Value
+from multiprocessing import Process, Value
+from time import sleep
 
 import maestro_controller
 import respiration
 import proximity
 import button
 
-CES_MODE = 0
-SLOW_BREATHE_MODE = 1
+NO_MOVE_MODE = 0
+CES_MODE = 1
+SLOW_BREATHE_MODE = 2
 
 class Spider(object):
     def __init__(self, leg_file):
         self.leg_file = leg_file
-        self.mode = SLOW_BREATHE_MODE
+        self.mode = NO_MOVE_MODE
 
         self.maestro = maestro_controller.MaestroController(leg_file)
         self.proxemic = proximity.Proxemic(proximity.Proximity.DEFAULT_CHANNELS)
-        #self.respiration = respiration.Respiration()
-        self.button = button.Button(channel=1)
+        self.respiration = respiration.Respiration()
+        self.button = button.Button()
         self.start_mode_flag = Value('b', False, lock=True)
+
+        self.no_move_process = None
+        self._no_move_continue = Value('b', False, lock=True)
 
     def start(self):
         self.button.monitor_button(self._button_listener)
@@ -30,10 +35,12 @@ class Spider(object):
 
                 self._stop_mode()
 
-                if self.mode == CES_MODE:
+                if self.mode == NO_MOVE_MODE:
+                    self.mode = CES_MODE
+                elif self.mode == CES_MODE:
                     self.mode = SLOW_BREATHE_MODE
                 else:
-                    self.mode = CES_MODE
+                    self.mode = NO_MOVE_MODE
 
                 self._start_mode()
 
@@ -41,19 +48,26 @@ class Spider(object):
         self._stop_mode()
 
     def _start_mode(self):
-        if self.mode == CES_MODE:
+        if self.mode == NO_MOVE_MODE:
+            self._no_move_continue.value = True
+            self.no_move_process = Process(target=self._no_move_process)
+            self.no_move_process.start()
+        elif self.mode == CES_MODE:
             self.maestro.start_ces_animation()
             self.proxemic.monitor_space(
                 self.maestro.prox_space_listener, self.maestro.prox_distance_listener)
-            #self.respiration.monitor_respiration(self.maestro.respiration_listener)
-        else:
+            self.respiration.monitor_respiration(self.maestro.respiration_listener)
+        elif self.mode == SLOW_BREATHE_MODE:
             self.maestro.start_slow_breathe_mode()
 
     def _stop_mode(self):
-        if self.mode == CES_MODE:
+        if self.mode == NO_MOVE_MODE:
+            self._no_move_continue.value = False
+            self.no_move_process.join()
+        elif self.mode == CES_MODE:
             self.maestro.stop_ces_animation()
-            #self.respiration.stop_monitor()
-        else:
+            self.respiration.stop_monitor()
+        elif self.mode == SLOW_BREATHE_MODE:
             self.maestro.stop_slow_breathe_mode()
 
     def _button_listener(self):
@@ -61,6 +75,10 @@ class Spider(object):
         self.start_mode_flag.value = True
 
         return True
+
+    def _no_move_process(self):
+        while self._no_move_continue.value:
+            sleep(2)
 
 def main(args):
     spider = Spider(args[0])

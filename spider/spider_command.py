@@ -20,7 +20,7 @@ class SpiderCommand(cmd.Cmd):
 
         args = line.split()
         servo = int(args.pop(0))
-        self.maestro.set_position_multiple(servo, *args)
+        self.maestro.set_position_multiple(servo, *(map(int, args)))
 
     def do_disable_servos(self, line):
         self.maestro.set_position_multiple(0, *([0]*24))
