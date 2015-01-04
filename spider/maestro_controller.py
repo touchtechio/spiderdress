@@ -46,6 +46,8 @@ class MaestroController(object):
         self.tsy = teensy.Teensy()
         self.ces_teensy_process = Process(target=self._ces_teensy_process)
 
+        self.get_errors(12)
+        self.get_errors(13)
         self.move_to(self.positions[self.current_position], [(10, 10)]*24)
 
     def setup_positions(self, filename):
