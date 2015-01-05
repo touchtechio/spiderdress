@@ -106,7 +106,7 @@ class MaestroController(object):
             ("jugendstil_half", [1500]*6),
             ("pause", 750),
             ("jugendstil", [1500]*6),
-            ("pause", 850),
+            ("pause", 950),
             ("park", [1500]*6)]
         challenge = [
             ("challenge", [1500]*6),
