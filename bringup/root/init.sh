@@ -4,7 +4,7 @@ init_spider_py() {
     #IMPORTANT!!!!!!
     #Ensure that the correct leg position file is being used!!!
     cd /home/root/spider
-    python spider.py #position_file here
+    python spider.py #position_file_here &>>/dev/null
 }
 
 main() {
@@ -26,7 +26,7 @@ main() {
     /home/root/bin/wifi-adhoc-enable
 
     #Start up CES interactions
-    #init_spider_py()
+    #init_spider_py
 }
 
 main
