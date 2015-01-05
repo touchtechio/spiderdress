@@ -71,7 +71,6 @@ class Spider(object):
             self.maestro.stop_slow_breathe_mode()
 
     def _button_listener(self):
-        print "BUTTON PRESS"
         self.start_mode_flag.value = True
 
         return True
