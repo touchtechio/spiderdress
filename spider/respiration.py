@@ -30,9 +30,10 @@ class Respiration(object):
 
         while self._continue_process.value:
             volts = self.adc.read_single_ended(1, self.pga, self.sps)/1000
+            #print "Volts: ", volts
             now = time()
 
-            if volts >= 1.36 and volts < 4.5:
+            if volts >= 1.22 and volts < 4.5:
                 if now - time_last_callback >= 2:
                     time_last_callback = now
                     callback()
