@@ -36,9 +36,9 @@ class Spider(object):
                 self._stop_mode()
 
                 if self.mode == NO_MOVE_MODE:
-                    self.mode = CES_MODE
-                elif self.mode == CES_MODE:
                     self.mode = SLOW_BREATHE_MODE
+                elif self.mode == SLOW_BREATHE_MODE:
+                    self.mode = CES_MODE
                 else:
                     self.mode = NO_MOVE_MODE
 
