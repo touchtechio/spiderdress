@@ -100,8 +100,8 @@ class MaestroController(object):
             ("pause", 500),
             ("park", [1000]*6)]
         attack = [
-            ("extend", [750]*6),
-            ("park", [900]*6)]
+            ("extend", [650]*6),
+            ("park", [800]*6)]
         jugendstil = [ #note, pause around 0.5 between position
             ("jugendstil_half", [1500]*6),
             ("pause", 750),
@@ -121,9 +121,9 @@ class MaestroController(object):
             ("park", [750]*6)]
         ninja = [
             ("extend", [600]*6),
-            ("park", [1000]*6),
+            ("park", [800]*6),
             ("knife", [500]*6),
-            ("park", [1500]*6)]
+            ("park", [1200]*6)]
         dance = [
             ]
 
@@ -143,7 +143,7 @@ class MaestroController(object):
         self.animations_by_zone["personal"] = [
             ["attack", "challenge", "breathe"],
             ["ninja", "wiggle", "breathe"],
-            ["knife", "jugendstil", "breathe"]]
+            ["jugendstil", "knife", "breathe"]]
         self.animations_by_zone["social_public"] = ["park"]
         self.animations_by_zone["intimate"] = ["push_away"]
 
@@ -276,7 +276,7 @@ class MaestroController(object):
         while i < anim_length:
             self.animate(anim[i][0], anim[i][1])
             i += 1
-        sleep(3)
+        sleep(1)
         self.animating = False
 
     def animate(self, script_name, animation_times):
