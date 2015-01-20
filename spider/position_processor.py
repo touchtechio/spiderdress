@@ -119,6 +119,25 @@ class PositionProcessor(object):
 
         self.print_position(position_key);
 
+    def write_positions(self, filename):
+        print "Opening the file..."
+        target = open(filename, 'w')
+
+
+
+        for key in self.positions.keys():
+            target.write(key)
+            target.write("\n")  
+            for i in range(6):
+                for j in range(4):
+                    target.write(str(self.positions[key].legs[i][j]))
+                    if j != 3 : target.write(",")      
+                target.write("\n")  
+
+        print "Opening the file..."
+
+        target.close()
+
 
 
     def process_command(self, command):
@@ -141,7 +160,7 @@ class PositionProcessor(object):
 
 
 
-        #
+        # change the increments by which the servo values are altered
         numericEntry = ord(command) - 48;   
         # x and c switch position
         if numericEntry > 0:
@@ -150,6 +169,12 @@ class PositionProcessor(object):
                 self.servoIncrement = increments[numericEntry-1];
                 print "increment : " , self.servoIncrement;
                 return;
+   
+        #    
+        # m - make a new file
+        if command == "m":
+            self. write_positions("positions_tmp");
+            return;
    
 
         #q-p a-; Q-P and A-: are for moving servos
