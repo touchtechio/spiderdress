@@ -27,7 +27,7 @@ disable() :
 
 
 """
-
+import sys
 from time import time, sleep
 import random
 from multiprocessing import Process, Value
@@ -369,8 +369,19 @@ class ServoPositions(object):
     def __str__(self):
         return str(self.legs)
 
-if __name__ == "__main__":
-    processor = PositionProcessor("positions_dress_a")
+def main(args):
+
+    defaultFilename = "positions_dress_a"
+
+    if len(args) > 0:
+        filename = args[0];
+    else:
+        filename = defaultFilename;
+        print "no file specified, using default"
+
+    print "loading file : ", filename;
+
+    processor = PositionProcessor(filename);
 
     print "PositionProcessor STARTed"
 
@@ -391,7 +402,8 @@ if __name__ == "__main__":
 
     print "done";
     
-
+if __name__ == "__main__":
+   main(sys.argv[1:])
 
 
 
