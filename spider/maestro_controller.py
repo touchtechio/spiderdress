@@ -8,7 +8,7 @@ from time import time, sleep
 import random
 from multiprocessing import Process, Value
 from itertools import izip
-import teensy
+#import teensy
 
 #http://www.pololu.com/docs/0J40/5.e
 class MaestroController(object):
@@ -23,6 +23,32 @@ class MaestroController(object):
     COLOR = [255, 255, 180]
 
     def __init__(self, leg_file):
+        self.serial = get_serial('/dev/ttyMFD1', 9600)
+        self.positions = {}
+        self.animations = {}
+        self.animations_by_zone = {}
+
+        self.setup_positions(leg_file)
+        self.setup_animations()
+
+        self.current_position = "park"
+        self.current_space = Value('d', MaestroController.PUBLIC, lock=True)
+        self.big_breath = Value('b', False, lock=True)
+
+        self.run_ces = Value('b', False, lock=True)
+        self.ces_animation_process = Process(target=self._ces_animation_process)
+
+        self.run_slow_breathe = Value('b', False, lock=True)
+        self.slow_breathe_process = Process(target=self._slow_breathe_process)
+
+        self.animating = False
+
+
+        self.get_errors(12)
+        self.get_errors(13)
+        self.move_to(self.positions[self.current_position], [(10, 10)]*24)
+
+    def real_init(self, leg_file):
         self.serial = get_serial('/dev/ttyMFD1', 9600)
         self.positions = {}
         self.animations = {}
