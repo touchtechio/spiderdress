@@ -33,15 +33,15 @@ import random
 from multiprocessing import Process, Value
 from itertools import izip
 
+import maestro_controller
+
+
 INCREMENT = 50;
 
 increments = [1, 2, 3, 5, 10, 25, 50, 100, 250];
 
 
 class PositionProcessor(object):
-    """MaestroController gives access to two Maestro's connected via UART, as well as
-    the ability to run animations based on pre defined positions.
-    """
 
 
     def __init__(self, leg_file):
@@ -53,7 +53,20 @@ class PositionProcessor(object):
         self.current_position = 0;
     
         self.servoIncrement = 50;
-        
+       
+        self.is_live = False
+
+        self.save_file = "positions_tmp";
+        self.serial_device = "/dev/tty.usbserial-DA013V2V"
+        self.serial_device = "/dev/tty.usbmodem00096261"
+        self.serial_device = "/dev/tty.usbserial-A5027W3T"
+
+
+        self.maestro = maestro_controller.MaestroController(self.save_file);
+
+
+
+
 
 
     def setup_positions(self, filename):
@@ -79,6 +92,28 @@ class PositionProcessor(object):
     def print_position(self, position_key):
         
         print self.positions[position_key];
+
+    def go_live(self, filename):
+        
+        self.maestro = maestro_controller.MaestroController(filename);
+
+        self.maestro.animate(self.positions.keys()[self.current_position], [1500]*6)
+
+
+
+    def print_help(self):
+        print "z   - quit";
+        print "x,c - position switch";
+        print "q-p - incr left servo pwm value";
+        print "a-; - decr left servo pwm value";
+        print "Q-P - update right servo pwm value";
+        print "A-: - update right servo pwm value";
+        print "1-9 - update increment for servo pwm value changes";
+        print "v   - enter or exit live mode";
+        print "n   - disable servos";
+        print "m   - save positions file 'positions_tmp'";
+        print "?   - print this help";
+
 
 
     def print_current_position(self):
@@ -145,6 +180,32 @@ class PositionProcessor(object):
         # Z is for quiting
         if command == 'z':
             return;
+    
+        # NEW_LINE is for help
+        if ord(command) == 13:
+            self.print_help();
+            return;
+
+        # ? is for help
+        if command == '?':
+            self.print_help();
+            return;
+
+        # m is for live mode
+        if command == 'v':
+            self.is_live = not self.is_live;
+            if self.is_live:
+                print "IS LIVE"
+                self.go_live(self.save_file)
+            else:
+                print "SIMULATION"
+            return;
+
+        # n is for disabling 
+        if command == 'n':
+            print "DISABLE"
+
+            return;
 
         # x and c switch position
         if command == 'x':
@@ -173,7 +234,7 @@ class PositionProcessor(object):
         #    
         # m - make a new file
         if command == "m":
-            self. write_positions("positions_tmp");
+            self.write_positions(self.save_file);
             return;
    
 
@@ -385,10 +446,9 @@ def main(args):
 
     print "PositionProcessor STARTed"
 
-
     print processor.positions["challenge"];
 
-    print processor.positions.keys();
+    print "loaded KEYS : ",  processor.positions.keys();
 
     #while processor.positions 
 
@@ -398,6 +458,8 @@ def main(args):
     while char != "z":
         char = getch();
         print char;
+        # print ord(char);
+
         processor.process_command(char);
 
     print "done";
