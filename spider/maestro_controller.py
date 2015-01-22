@@ -24,6 +24,8 @@ class MaestroController(object):
 
     def __init__(self, leg_file):
         self.serial = get_serial('/dev/ttyMFD1', 9600)
+#                self.serial = get_serial('/dev/tty.usbmodem00096261', 9600)
+
         self.positions = {}
         self.animations = {}
         self.animations_by_zone = {}

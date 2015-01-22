@@ -203,7 +203,7 @@ class PositionProcessor(object):
 
         # n is for disabling 
         if command == 'n':
-            print "DISABLE"
+            print "DISABLE : TODO // NOT IMPLMENTED"
 
             return;
 
@@ -388,21 +388,20 @@ def _find_getch():
         import msvcrt
         return msvcrt.getch
 
-    # POSIX system. Create and return a getch that manipulates the tty.
-    import sys, tty
+
     def _getch():
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
+        import sys, termios
+        old_settings = termios.tcgetattr(0)
+        new_settings = old_settings[:]
+        new_settings[3] &= ~termios.ICANON
         try:
-            tty.setraw(fd)
+            termios.tcsetattr(0, termios.TCSANOW, new_settings)
             ch = sys.stdin.read(1)
         finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+            termios.tcsetattr(0, termios.TCSANOW, old_settings)
         return ch
 
     return _getch
-
-
 
 
 
