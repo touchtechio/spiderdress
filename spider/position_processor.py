@@ -36,9 +36,9 @@ from itertools import izip
 import maestro_controller
 
 
-INCREMENT = 50;
+INCREMENT = 10;
 
-increments = [1, 2, 3, 5, 10, 25, 50, 100, 250];
+increments = [10, 20, 30, 50, 60, 70, 80, 100];
 
 
 class PositionProcessor(object):
@@ -48,11 +48,11 @@ class PositionProcessor(object):
 
         self.positions = {}
 
-        self.setup_positions(leg_file)
-
         self.current_position = 0;
+
+        self.default_position = "park";
     
-        self.servoIncrement = 50;
+        self.servoIncrement = 10;
        
         self.is_live = False
 
@@ -61,8 +61,10 @@ class PositionProcessor(object):
         self.serial_device = "/dev/tty.usbmodem00096261"
         self.serial_device = "/dev/tty.usbserial-A5027W3T"
 
+        self.setup_positions(leg_file)
 
-        self.maestro = maestro_controller.MaestroController(self.save_file);
+
+        self.maestro = maestro_controller.MaestroController("");
 
 
 
@@ -89,13 +91,26 @@ class PositionProcessor(object):
             self.positions[position_name] = ServoPositions(leg_positions)
             line = position_file.readline()
 
+
+        for i in range(len(self.positions.keys())):
+            if self.positions.keys()[i] == self.default_position:
+                self.current_position = i;
+                continue;
+                
+        return;
+   
+
+
     def print_position(self, position_key):
         
         print self.positions[position_key];
 
     def go_live(self, filename):
         
-        self.maestro = maestro_controller.MaestroController(filename);
+        #self.maestro = maestro_controller.MaestroController();
+
+        self.maestro.setup_positions(filename);
+
 
         self.maestro.animate(self.positions.keys()[self.current_position], [1500]*6)
 
@@ -155,7 +170,7 @@ class PositionProcessor(object):
         self.print_position(position_key);
 
     def write_positions(self, filename):
-        print "Opening the file..."
+        print "Opening the file to write: ", filename
         target = open(filename, 'w')
 
 
@@ -169,7 +184,7 @@ class PositionProcessor(object):
                     if j != 3 : target.write(",")      
                 target.write("\n")  
 
-        print "Opening the file..."
+        print "Closed the file."
 
         target.close()
 
@@ -196,6 +211,7 @@ class PositionProcessor(object):
             self.is_live = not self.is_live;
             if self.is_live:
                 print "IS LIVE"
+                self.write_positions(self.save_file);
                 self.go_live(self.save_file)
             else:
                 print "SIMULATION"
@@ -203,8 +219,15 @@ class PositionProcessor(object):
 
         # n is for disabling 
         if command == 'n':
-            print "DISABLE : TODO // NOT IMPLMENTED"
+            print "DISABLED"
+            self.maestro.set_position_multiple(0, *([0]*24))
+            return;
 
+        # b is for writing values to maestro 
+        if command == 'b':
+            print "PREVIEW"
+            self.write_positions(self.save_file);
+            self.go_live(self.save_file)
             return;
 
         # x and c switch position
@@ -273,10 +296,10 @@ class PositionProcessor(object):
             servoNumber = 4; 
             moveUp = False;
         if command == 'y':
-            servoNumber = 5; 
+            servoNumber = 5;
             moveUp = True;
         if command == 'h':
-            servoNumber = 5; 
+            servoNumber = 5;
             moveUp = False;
         if command == 'u':
             servoNumber = 6; 
@@ -376,6 +399,13 @@ class PositionProcessor(object):
         print "increment : " , self.servoIncrement;
 
         self.update_position(self.positions.keys()[self.current_position], servoNumber, moveUp);
+
+        if self.is_live:
+            self.write_positions(self.save_file);
+            self.go_live(self.save_file)
+
+            
+    
 
 
 
